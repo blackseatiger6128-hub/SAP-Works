@@ -1,0 +1,26 @@
+TABLES:resb,mara,caufv.
+
+DATA: gt_tab TYPE TABLE OF zpps_pla_rapor,
+      gs_tab TYPE  zpps_pla_rapor.
+
+DATA : gt_fcat   TYPE lvc_t_fcat,
+       gs_fcat   TYPE lvc_s_fcat,
+       gs_layout TYPE lvc_s_layo.
+
+DATA: it_sort TYPE  lvc_t_sort,
+      wa_sort LIKE LINE OF it_sort.
+
+RANGES: rng_sperr FOR mard-sperr.
+
+SELECTION-SCREEN BEGIN OF BLOCK b00 WITH FRAME TITLE TEXT-001.
+  SELECT-OPTIONS: s_matnr FOR resb-matnr,
+                  s_mtart FOR mara-mtart,
+                  s_aufnr FOR resb-aufnr,
+                  s_baugr FOR resb-baugr,
+                  "s_BDTER FOR RESB-BDTER NO-EXTENSION,
+                  s_gltrp FOR caufv-gltrp NO-EXTENSION,
+                  s_plnum FOR resb-plnum.
+  PARAMETERS: c_sperr as CHECKBOX.
+  PARAMETERS: p_detay TYPE xfeld.
+* PARAMETERS: p_BDTER TYPE RESB-BDTER OBLIGATORY DEFAULT sy-datum.
+SELECTION-SCREEN END OF BLOCK b00.

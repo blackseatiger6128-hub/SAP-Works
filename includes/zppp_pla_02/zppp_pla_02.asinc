@@ -1,0 +1,386 @@
+*&---------------------------------------------------------------------*
+*& Include          ZPPP_PLA_02
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form get_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_data .
+  DATA: lv_ay      TYPE lfmon,
+        lv_yil     TYPE lfgja,
+        lv_isstok  TYPE enmng,
+        lv_misstok TYPE enmng,
+        lv_matnr   TYPE matnr,
+        wa_color   TYPE lvc_s_scol,
+        it_color   TYPE TABLE OF lvc_s_scol.
+
+  DATA: lv_tabix TYPE sy-tabix VALUE 1.
+  SELECT r~aufnr,
+         r~matnr,
+         r~bdmng,
+         r~enmng,
+         r~meins,
+         r~werks,
+         r~lgort,
+         r~plnum,
+         makt~maktx,
+         c~gltrp AS bdter
+*       ( c~gamng - c~igmng - c~iasmg ) AS bil_acikemir "Hdf.Mktar - TEIskartasız - Iskarta
+    FROM resb AS r INNER JOIN mara AS m
+    ON  r~matnr = m~matnr
+* ------> added by BGUNGOR 08.05.2021 22:44:46
+    INNER JOIN caufv AS c ON c~aufnr = r~aufnr
+*	<---------
+    LEFT OUTER JOIN makt ON r~matnr = makt~matnr AND
+                            makt~spras EQ @sy-langu
+    INTO CORRESPONDING FIELDS OF TABLE @gt_tab
+    WHERE r~matnr IN @s_matnr
+      AND r~aufnr IN @s_aufnr
+      AND r~baugr IN @s_baugr
+      "Müşteri isteği ile BDTER yerine CAUFV-GLTRP kullanıldı
+      "AND r~bdter IN s_bdter
+      AND r~plnum IN @s_plnum
+      AND r~xloek EQ @space
+      AND r~xwaok NE @space
+      AND r~kzear EQ @space
+      AND ( r~bwart EQ '261' OR r~bwart EQ '931' )
+      AND m~mtart IN @s_mtart.
+*      AND makt~spras EQ sy-langu.
+
+  SORT gt_tab BY matnr werks bdter ASCENDING.
+
+  IF gt_tab IS NOT INITIAL.
+    SELECT aufnr,
+           plnbez,
+           gamng,
+           igmng,
+           iasmg
+      FROM caufv INTO TABLE @DATA(lt_caufv)
+      FOR ALL ENTRIES IN @gt_tab WHERE plnbez = @gt_tab-matnr AND
+                                       loekz = @space AND
+                                       idat2 = '00000000' AND
+                                       idat3 = '00000000' .
+    SORT lt_caufv BY plnbez.
+  ENDIF.
+
+*  LOOP AT  gt_tab INTO gs_tab.
+*    LOOP AT lt_caufv INTO DATA(ls_caufv) WHERE plnbez = gs_tab-matnr.
+*      gs_tab-bil_acikemir = gs_tab-bil_acikemir + ( ls_caufv-gamng - ls_caufv-igmng - ls_caufv-iasmg ).
+*    ENDLOOP.
+*    MODIFY gt_tab FROM gs_tab TRANSPORTING bil_acikemir.
+*  ENDLOOP.
+
+  LOOP AT gt_tab INTO gs_tab.
+    READ TABLE lt_caufv INTO DATA(ls_caufv)
+         WITH KEY plnbez = gs_tab-matnr
+         BINARY SEARCH.
+    IF sy-subrc = 0 .
+      LOOP AT  lt_caufv FROM sy-tabix
+                        INTO ls_caufv.
+        IF gs_tab-matnr <> ls_caufv-plnbez.
+          EXIT.
+        ENDIF.
+        gs_tab-bil_acikemir = gs_tab-bil_acikemir + ( ls_caufv-gamng - ls_caufv-igmng - ls_caufv-iasmg ).
+      ENDLOOP.
+    ENDIF.
+    MODIFY gt_tab FROM gs_tab TRANSPORTING bil_acikemir.
+  ENDLOOP.
+
+  IF c_sperr = abap_false.
+    CLEAR rng_sperr.
+  ELSE.
+    rng_sperr = 'IEQ'.
+    rng_sperr-low = 'X'.
+    APPEND rng_sperr.
+  ENDIF.
+
+  IF gt_tab IS NOT INITIAL.
+    SELECT matnr, werks, lgort, labst, umlme, insme, speme, retme,
+      lfgja, lfmon
+      FROM mard INTO TABLE @DATA(lt_mard)
+      FOR ALL ENTRIES IN @gt_tab
+      WHERE matnr = @gt_tab-matnr
+        AND werks = @gt_tab-werks
+*       AND lgort = @gt_tab-lgort
+        AND sperr IN @rng_sperr.
+    SORT lt_mard ASCENDING BY matnr.
+
+* ------> commented by BGUNGOR 08.05.2021 22:51:42
+*    SELECT aufnr, gltrp FROM caufv INTO TABLE @DATA(lt_caufv)
+*      FOR ALL ENTRIES IN @gt_tab WHERE aufnr = @gt_tab-aufnr
+*                                  AND loekz = @space
+*                                  AND idat2 EQ '00000000'
+*                                  AND idat3 EQ '00000000'
+*                                  AND gltrp IN @s_gltrp.
+*	<---------
+  ENDIF.
+
+  IF gt_tab[] IS NOT INITIAL.
+    SELECT matnr, eisbe, bstfe
+      FROM marc
+      INTO TABLE @DATA(lt_marc)
+      FOR ALL ENTRIES IN @gt_tab WHERE matnr = @gt_tab-matnr
+                                   AND werks = '1000'.
+  ENDIF.
+
+  LOOP AT gt_tab INTO gs_tab.
+
+    IF gs_tab-aufnr EQ space AND gs_tab-plnum EQ space.
+      DELETE gt_tab INDEX sy-tabix.
+    ENDIF.
+    gs_tab-toplamg = gs_tab-bdmng - gs_tab-enmng.
+
+* ------> commented by BGUNGOR 08.05.2021 22:49:58
+*    READ TABLE lt_caufv INTO DATA(ls_caufv) WITH KEY aufnr = gs_tab-aufnr.
+*    IF sy-subrc = 0.
+*      "İhtiyaç tarihi alanına BDTER yerine müşteri isteği ile
+*      " CAUFV-GLTRP alanı verildi
+*      gs_tab-bdter = ls_caufv-gltrp.
+*    ENDIF.
+*	<---------
+    lv_ay = sy-datum+4(2).
+    lv_yil = sy-datum(4).
+*    LOOP AT lt_mard INTO DATA(ls_mard) WHERE matnr = gs_tab-matnr
+*                                         AND werks = gs_tab-werks.
+**                                         AND lgort = gs_tab-lgort.
+**                                         AND lfgja = lv_yil
+**                                         AND lfmon = lv_ay.
+
+    LOOP AT lt_mard FROM lv_tabix INTO DATA(ls_mard).
+      IF ls_mard-matnr NE gs_tab-matnr OR
+         ls_mard-werks NE gs_tab-werks.
+
+        lv_tabix = sy-tabix.
+        EXIT.
+
+      ELSE.
+        IF   ls_mard-lgort EQ 'GR25' OR ls_mard-lgort EQ 'GR30'
+          OR ls_mard-lgort EQ 'KA10' OR ls_mard-lgort EQ 'KA12'
+          OR ls_mard-lgort EQ 'KA13' OR ls_mard-lgort EQ 'KA14'
+          OR ls_mard-lgort EQ 'KA15' OR ls_mard-lgort EQ 'KA25'
+          OR ls_mard-lgort EQ 'KA26' OR ls_mard-lgort EQ 'KA27'
+          OR ls_mard-lgort EQ 'KA28' OR ls_mard-lgort EQ 'KA29'
+          OR ls_mard-lgort EQ 'KA30' OR ls_mard-lgort EQ 'KA31'
+          OR ls_mard-lgort EQ 'KA32' OR ls_mard-lgort EQ 'KR10'
+          OR ls_mard-lgort EQ 'KR12' OR ls_mard-lgort EQ 'KR13'
+          OR ls_mard-lgort EQ 'KR14' OR ls_mard-lgort EQ 'KR15'
+          OR ls_mard-lgort EQ 'KR25' OR ls_mard-lgort EQ 'KR26'
+          OR ls_mard-lgort EQ 'KR27' OR ls_mard-lgort EQ 'KR28'
+          OR ls_mard-lgort EQ 'KR29' OR ls_mard-lgort EQ 'KR30'
+          OR ls_mard-lgort EQ 'KR31' OR ls_mard-lgort EQ 'KR32'
+          OR ls_mard-lgort EQ 'KT10' OR ls_mard-lgort EQ 'KT25'
+          OR ls_mard-lgort EQ 'KT26' OR ls_mard-lgort EQ 'KT27'
+          OR ls_mard-lgort EQ 'KT28' OR ls_mard-lgort EQ 'KT29'
+          OR ls_mard-lgort EQ 'KT30' OR ls_mard-lgort EQ 'KT31'
+          OR ls_mard-lgort EQ 'KT32' OR ls_mard-lgort EQ '1018'
+          OR ls_mard-lgort EQ '1016' OR ls_mard-lgort EQ '1017'
+          OR ls_mard-lgort EQ '1019' OR ls_mard-lgort EQ '1022'
+          OR ls_mard-lgort EQ '1023' OR ls_mard-lgort EQ '1024'
+          OR ls_mard-lgort EQ '1020' OR ls_mard-lgort EQ 'KRSM'
+          OR ls_mard-lgort EQ '1035' OR ls_mard-lgort EQ '1036'
+          OR ls_mard-lgort EQ 'ARLB' OR ls_mard-lgort EQ 'IA01'
+          OR ls_mard-lgort EQ 'IA02' OR ls_mard-lgort EQ 'TL28'.
+
+          gs_tab-ustok = gs_tab-ustok + ls_mard-insme + ls_mard-speme + ls_mard-retme + ls_mard-umlme.
+          gs_tab-ustok = gs_tab-ustok + ls_mard-labst.
+
+        ELSEIF ls_mard-lgort EQ '1000' OR ls_mard-lgort EQ '1001'
+            OR ls_mard-lgort EQ '1002' OR ls_mard-lgort EQ '1003'
+            OR ls_mard-lgort EQ '1004' OR ls_mard-lgort EQ '1005'
+*            OR ls_mard-lgort EQ '1006' OR ls_mard-lgort EQ '1007'
+            OR ls_mard-lgort EQ '1008' OR ls_mard-lgort EQ '1009'
+            OR ls_mard-lgort EQ '1010' OR ls_mard-lgort EQ '1011'
+            OR ls_mard-lgort EQ '1012' OR ls_mard-lgort EQ '1013'
+            OR ls_mard-lgort EQ '1014' OR ls_mard-lgort EQ '1015'
+            OR ls_mard-lgort EQ '1021' OR ls_mard-lgort EQ '1025'
+            OR ls_mard-lgort EQ '1026' OR ls_mard-lgort EQ '1027'
+            OR ls_mard-lgort EQ '1028' OR ls_mard-lgort EQ '1029'
+            OR ls_mard-lgort EQ '1030' OR ls_mard-lgort EQ '1031'
+            OR ls_mard-lgort EQ '1032' OR ls_mard-lgort EQ '1033'
+            OR ls_mard-lgort EQ '1034' OR ls_mard-lgort EQ '1037'
+            OR ls_mard-lgort EQ '1038' OR ls_mard-lgort EQ '1039'
+            OR ls_mard-lgort EQ '1050' OR ls_mard-lgort EQ '1051'
+            OR ls_mard-lgort EQ '1052' OR ls_mard-lgort EQ '1053'
+            OR ls_mard-lgort EQ '1054' OR ls_mard-lgort EQ '1055'
+            OR ls_mard-lgort EQ '1056' OR ls_mard-lgort EQ '1061'
+            OR ls_mard-lgort EQ '1062' OR ls_mard-lgort EQ '1070'
+            OR ls_mard-lgort EQ '1071' OR ls_mard-lgort EQ '1072'
+            OR ls_mard-lgort EQ '1073' OR ls_mard-lgort EQ 'RWRK'.
+
+          gs_tab-kstok = gs_tab-kstok + ls_mard-labst +  ls_mard-umlme.
+
+*** montaj ayrı hesaplanacak
+          IF ls_mard-lgort EQ '1029'.
+            gs_tab-mkstok = gs_tab-mkstok + ls_mard-labst +  ls_mard-umlme.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+
+*        SELECT SUM( labst )
+*          FROM mard INTO gs_tab-kstok
+*          WHERE matnr EQ ls_mard-matnr
+*            AND werks EQ '1000'.
+
+    ENDLOOP.
+
+    "Emniyet Stoğu ve Sabit Parti Büyüklüğü alanlarını ekleyelim"
+    READ TABLE lt_marc INTO DATA(ls_marc) WITH KEY matnr = gs_tab-matnr.
+    IF sy-subrc EQ 0.
+      gs_tab-eisbe = ls_marc-eisbe.
+      gs_tab-bstfe = ls_marc-bstfe.
+    ENDIF.
+
+*    "İhtiyaç sonrası stok alanını hesaplayalım"
+    IF gs_tab-matnr NE lv_matnr.
+
+      CLEAR : lv_isstok,lv_misstok.
+      gs_tab-isstok = gs_tab-kstok - gs_tab-toplamg.
+      lv_isstok = gs_tab-kstok - gs_tab-toplamg.
+
+      gs_tab-misstok = gs_tab-mkstok - gs_tab-toplamg.
+      lv_misstok = gs_tab-mkstok - gs_tab-toplamg.
+
+    ELSE.
+      gs_tab-isstok = lv_isstok - gs_tab-toplamg.
+      lv_isstok = gs_tab-isstok.
+
+      gs_tab-misstok = lv_misstok - gs_tab-toplamg.
+      lv_misstok = gs_tab-misstok.
+
+    ENDIF.
+
+    IF gs_tab-isstok LT 0.
+      gs_tab-netgereken = abs( gs_tab-isstok ).
+      gs_tab-isstok = 0.
+      MOVE 'NETGEREKEN' TO wa_color-fname.
+      MOVE '6'         TO wa_color-color-col.
+      MOVE '1'         TO wa_color-color-int.
+      MOVE '1'         TO wa_color-color-inv.
+      APPEND wa_color TO it_color.
+      gs_tab-color_cell[] = it_color[].
+
+    ELSE.
+      gs_tab-netgereken = 0.
+    ENDIF.
+
+*** montaj için
+    IF gs_tab-misstok LT 0.
+      gs_tab-mnetgereken = abs( gs_tab-misstok ).
+      gs_tab-misstok = 0.
+      MOVE 'MNETGEREKEN' TO wa_color-fname.
+      MOVE '6'         TO wa_color-color-col.
+      MOVE '1'         TO wa_color-color-int.
+      MOVE '1'         TO wa_color-color-inv.
+      APPEND wa_color TO it_color.
+      gs_tab-color_cell[] = it_color[].
+
+    ELSE.
+      gs_tab-mnetgereken = 0.
+    ENDIF.
+
+    lv_matnr = gs_tab-matnr.
+
+    "Net Gereken alanı"
+    gs_tab-iht_mik = gs_tab-toplamg - gs_tab-kstok.
+
+* ------> added by BGUNGOR 08.05.2021 23:17:54
+    IF gs_tab-netgereken LT gs_tab-toplamg.
+      gs_tab-netgereken2 = gs_tab-netgereken.
+    ELSE.
+      gs_tab-netgereken2 = gs_tab-toplamg.
+    ENDIF.
+
+    IF gs_tab-mnetgereken LT gs_tab-toplamg.
+      gs_tab-mnetgereken2 = gs_tab-mnetgereken.
+    ELSE.
+      gs_tab-mnetgereken2 = gs_tab-toplamg.
+    ENDIF.
+
+*	<---------
+
+    MODIFY gt_tab FROM gs_tab.
+  ENDLOOP.
+
+  "added by mkeskin at 11.12.2023
+  LOOP AT gt_tab FROM gs_tab.  "net gereken kırmızı olan satırlarda
+    READ TABLE gs_tab-color_cell INTO wa_color WITH KEY fname = 'NETGEREKEN'.
+    IF sy-subrc EQ 0.
+      IF gs_tab-toplamg > gs_tab-kstok. "toplam gerekemn < stok dan
+
+      ENDIF.
+    ENDIF.
+  ENDLOOP.
+  PERFORM display_data.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form display_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM display_data .
+
+
+  gs_layout-zebra      = 'X'.
+  gs_layout-cwidth_opt = 'X'.
+  gs_layout-ctab_fname = 'COLOR_CELL'.
+*  gs_layout-box_fname = 'MARK'.
+
+
+  CALL FUNCTION 'LVC_FIELDCATALOG_MERGE'
+    EXPORTING
+      i_structure_name = 'ZPPS_PLA_RAPOR'
+    CHANGING
+      ct_fieldcat      = gt_fcat.
+
+  gt_fcat[ fieldname = 'TOPLAMG' ]-coltext = TEXT-t02.
+  gt_fcat[ fieldname = 'KSTOK' ]-coltext = TEXT-t03.
+  gt_fcat[ fieldname = 'USTOK' ]-coltext = TEXT-t04.
+  gt_fcat[ fieldname = 'BDTER' ]-coltext = TEXT-t05.
+  gt_fcat[ fieldname = 'PLNUM' ]-coltext = TEXT-t05.
+  gt_fcat[ fieldname = 'ISSTOK' ]-coltext = TEXT-t06.
+  gt_fcat[ fieldname = 'IHT_MIK' ]-no_out =  'X'.
+  gt_fcat[ fieldname = 'NETGEREKEN' ]-coltext = TEXT-t09.
+  gt_fcat[ fieldname = 'NETGEREKEN2' ]-coltext = TEXT-t08.
+  gt_fcat[ fieldname = 'BDMNG' ]-tech = 'X'.
+  gt_fcat[ fieldname = 'BIL_ACIKEMIR' ]-coltext = TEXT-t10.
+
+  gt_fcat[ fieldname = 'MKSTOK' ]-coltext = TEXT-t11. "montaj
+  gt_fcat[ fieldname = 'MNETGEREKEN' ]-coltext = TEXT-t12. "montaj
+  gt_fcat[ fieldname = 'MNETGEREKEN2' ]-coltext = TEXT-t13.
+  gt_fcat[ fieldname = 'MISSTOK' ]-coltext = TEXT-t14.
+
+*  wa_sort-spos = '01'.
+*  wa_sort-fieldname = 'MATNR'.
+*  wa_sort-up = 'X'.
+*  wa_sort-group = 'UL'.
+*  APPEND wa_sort TO it_sort.
+*  CLEAR wa_sort.
+*
+*  wa_sort-spos = '02'.
+*  wa_sort-fieldname = 'BDTER'.
+*  wa_sort-up = 'X'.
+*  APPEND wa_sort TO it_sort.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+    EXPORTING
+      i_callback_program = sy-repid
+*     i_callback_pf_status_set = 'SET_PF'
+*     i_callback_user_command  = 'USER_COMMAND'
+      is_layout_lvc      = gs_layout
+      it_fieldcat_lvc    = gt_fcat
+      i_save             = 'A'
+*     it_sort_lvc        = it_sort
+    TABLES
+      t_outtab           = gt_tab
+    EXCEPTIONS
+      program_error      = 1
+      OTHERS             = 2.
+
+ENDFORM.
