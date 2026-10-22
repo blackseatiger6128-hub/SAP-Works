@@ -1,0 +1,13 @@
+@Metadata.layer: #CORE
+@UI.presentationVariant: [{ sortOrder: [ { by: 'MaterialType', direction: #ASC } ] }]
+annotate entity ZMKVH_MATERIALTYPE
+    with 
+{
+    @UI.lineItem: [{ position: 10, importance: #HIGH }] 
+    @UI.textArrangement: #TEXT_FIRST 
+    MaterialType; 
+    
+    @UI.lineItem: [{ position: 20 }] 
+    MaterialTypeText;
+    
+}

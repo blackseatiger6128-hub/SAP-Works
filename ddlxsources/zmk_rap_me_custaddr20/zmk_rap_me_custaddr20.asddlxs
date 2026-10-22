@@ -1,0 +1,29 @@
+@Metadata.layer: #CORE
+annotate entity ZMK_PV_CUSTADDR20
+    with 
+{
+    @UI.facet: [{ id: 'CustAddr', purpose: #STANDARD, type: #IDENTIFICATION_REFERENCE, label: 'Customer Addresses', position: 10 }]
+    @UI: { lineItem: [{  position: 10 }],
+           identification:[{  position: 10 }] }
+    CustomerNo;
+    @UI: { lineItem: [{  position: 20 }],
+           identification:[{  position: 20 }] }
+    AddressId;
+    @UI: { lineItem: [{  position: 30 }],
+           identification:[{  position: 30 }] }
+    City;
+    @UI: { lineItem: [{  position: 40 }],
+           identification:[{  position: 40 }] }
+    District;
+     @UI: { lineItem: [{  position: 50 }],
+           identification:[{  position: 50 }] }
+    PostalCode;
+     @UI: { lineItem: [{  position: 60 }],
+           identification:[{  position: 60 }] }
+    Country;
+     @UI: { lineItem: [{  position: 70 }],
+           identification:[{  position: 70 }] }
+    Street;
+
+    
+}

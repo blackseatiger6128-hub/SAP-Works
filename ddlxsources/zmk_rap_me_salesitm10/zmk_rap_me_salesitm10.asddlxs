@@ -1,0 +1,38 @@
+@Metadata.layer: #CORE
+annotate entity ZMK_CDS_PJV_SALESITM10
+    with 
+{
+    @UI.hidden: true
+    Salesitemuuid;
+    @UI.hidden: true
+    Salesorderuuid; 
+    @UI.lineItem: [{ position:10 }]
+    Salesorderitem;
+    @UI.lineItem: [{ position:10 }]
+    Salesorderitemcategory; 
+    @UI.lineItem: [{ position:10 }]
+    Salesorderitemtext; 
+    @UI.lineItem: [{ position:10 }]
+    Material;
+    @UI.lineItem: [{ position:10 }]
+    Plant; 
+    @UI.lineItem: [{ position:10 }]
+    Orderquantity; 
+    @UI.lineItem: [{ position:10 }]
+    Orderquantityunit;
+    @UI.lineItem: [{ position:10 }]
+    Netamount;
+    @UI.hidden: true
+    Transactioncurrency;
+    @UI.hidden: true
+    Createdbyuser;
+    @UI.hidden: true
+    Creationat;
+    @UI.hidden: true
+    Lastchangedbyuser;
+    @UI.hidden: true  
+    Lastchangedat;
+    @UI.hidden: true
+    Locallastchangedat;
+  
+}

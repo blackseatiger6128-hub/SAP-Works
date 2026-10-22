@@ -1,0 +1,28 @@
+@Metadata.layer: #CORE
+annotate entity ZMKI_MAT_SALES_ORG
+    with 
+{
+   @UI.lineItem: [{ position: 10 }]
+   @Consumption.valueHelpDefinition: [{ entity: { name: 'I_SalesOrganization', element: 'SalesOrganization' } }] 
+   SalesOrg;
+   
+   @UI.lineItem: [{ position: 20 }] 
+   @Consumption.valueHelpDefinition: [{ entity: { name: 'I_DistributionChannel', element: 'DistributionChannel' } }] 
+   DistChannel; 
+   
+   @UI.lineItem: [{ position: 30 }] 
+   SalesUnit; 
+   
+   @UI.lineItem: [{ position: 40 }] 
+   MinOrderQty; 
+   
+   @UI.lineItem: [{ position: 50 }]
+   ItemCatGroup; 
+   
+   @UI.lineItem: [{ position: 60 }]
+   DeliveringPlant; 
+   
+   @UI.lineItem: [{ position: 70 }] 
+   ProductHierarchySD;
+    
+}

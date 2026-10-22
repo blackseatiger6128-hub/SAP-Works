@@ -1,0 +1,101 @@
+@Metadata.layer: #CORE
+@UI.headerInfo: { typeName: 'Employee',
+                  typeNamePlural: 'Employees',
+                  title: { value: 'Emplid' },
+                  description: { value: 'Fullname' } 
+                }
+@Search.searchable: true  
+annotate entity ZMKC_EMPLOYEE
+    with 
+{
+-- Header Area Facets
+ @UI.facet: [
+{ position: 10, purpose: #HEADER, type: #DATAPOINT_REFERENCE, targetQualifier: '_HDR_1' },
+{ position: 20, purpose: #HEADER, type: #DATAPOINT_REFERENCE, targetQualifier: '_HDR_2' },
+--Standard Area Facets
+ { position: 10, label: 'Basic Info', type: #IDENTIFICATION_REFERENCE },
+-- Collection Facet ( Parent )
+ { position: 20, label: 'Communication Info', type: #COLLECTION, id: '_COMM' },
+ --- Sub-Facets ( Child )
+ { position: 10 , label: 'Contact Info', type: #FIELDGROUP_REFERENCE, targetQualifier: '_CONT',  parentId: '_COMM'},
+ { position: 20, label: 'Address Info', type: #FIELDGROUP_REFERENCE, targetQualifier: '_ADDR', parentId: '_COMM' },
+ -- Line Item Facet 
+ { position: 30, label: 'Project Info', type: #LINEITEM_REFERENCE, targetElement: '_proj' } ]
+ 
+  @UI.lineItem: [{ position: 5, value: 'CountryLogoUrl' }]           
+  CountryLogoUrl;
+
+  @UI.lineItem: [{ position: 10 }]
+  //@UI.selectionField: [{ position: 10 }]
+  @EndUserText: { label: 'Employee No.', quickInfo: 'Employee Number as per records' }
+  @UI.identification: [{ position: 10 }]
+  @Search.defaultSearchElement: true
+  @Search.fuzzinessThreshold: 0.7
+  @Search.ranking: #HIGH
+  Emplid;
+  @UI.lineItem: [{ position: 20 }] 
+  @UI.identification: [{ position: 20 }]
+  Fname;
+  @UI.lineItem: [{ position: 30 }]  
+  @UI.identification: [{ position: 30 }]
+  Lname;
+  @UI.lineItem: [{ position: 40 }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 40 }]
+  @Consumption.valueHelpDefinition: [{ entity: { name: 'ZMKI_SH_GENDER', element: 'GenderCode' } }]
+  Gender;
+  @UI.lineItem: [{ position: 50 }] 
+  @UI.selectionField: [{ position: 30 }]
+  @EndUserText: { label: 'Designation', quickInfo: 'Designation based on experience' }
+  @UI.identification: [{ position: 50 }]
+  @UI.dataPoint: { qualifier: '_HDR_1', title: 'Designation' }
+  @Search.defaultSearchElement: true
+  @Search.fuzzinessThreshold: 0.7
+  @Search.ranking: #LOW
+  Designation;
+  
+  @UI.lineItem: [{ position: 60 }] 
+  @UI.hidden: true 
+  Fullname;
+  
+  //Contact info
+  @UI.fieldGroup: [{ position: 10, qualifier: '_CONT' }] 
+  @EndUserText: { label: 'Phone No.', quickInfo: 'Primary Contact' }
+  PhoneNum;
+ 
+  @UI.fieldGroup: [{ position: 20, qualifier: '_CONT' }]  
+  @EndUserText: { label: 'Alt. Phone No.', quickInfo: 'Alternative Contact' }
+  AltPhoneNum;
+ 
+  @UI.fieldGroup: [ { position: 30, qualifier: '_CONT'  }]  
+  @EndUserText: { label: 'Email ID', quickInfo: 'Primary E-Mail ID' }
+  EmailId;
+ 
+  @UI.fieldGroup: [{ position: 40, qualifier: '_CONT' }]  
+  @EndUserText: { label: 'Alt. Email ID', quickInfo: 'Alternative E-Mail ID' }
+  AltEmailId;
+ 
+  // Address Info
+  @UI.fieldGroup: [{ position: 10, qualifier: '_ADDR' }]
+  @EndUserText:{ label: 'Street' }
+  @UI.lineItem: [{ position: 61 }] 
+  @Search.defaultSearchElement: true
+  @Search.fuzzinessThreshold: 0.8
+  @Search.ranking: #MEDIUM
+  Street;
+ 
+  @UI.fieldGroup: [{ position: 20, qualifier: '_ADDR' }] 
+  @EndUserText:{ label: 'City' }
+  City;
+ 
+  @UI.fieldGroup: [{ position: 30, qualifier: '_ADDR' }] 
+  @EndUserText:{ label: 'Country' }
+  @UI.dataPoint: { qualifier: '_HDR_2', title: 'Country' }
+  @UI.selectionField: [{ position: 40 }]
+  @UI.lineItem: [{ position: 60, type: #WITH_URL, url: 'CountryWebLink' }] 
+  //@Consumption.valueHelpDefinition: [{ entity: { name: 'I_COUNTRYVH', element: 'Country' } }]
+  @Consumption.valueHelpDefinition: [{ entity: { name: 'ZMKI_SH_COUNTRY', element: 'Country' } }]
+  @UI.textArrangement: #TEXT_LAST
+  Country;
+ 
+}

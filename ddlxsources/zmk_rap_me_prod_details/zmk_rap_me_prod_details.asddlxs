@@ -1,0 +1,47 @@
+@Metadata.layer: #CORE
+@UI: {
+headerInfo: {
+typeName:       'Product Details',
+typeNamePlural: 'Products',
+title: { value: 'PName'}}}
+annotate entity ZMKC_PRODUCT_DETAILS
+    with 
+{
+ @UI.facet: [
+{ id: 'Colleact',type: #COLLECTION,position: 10,purpose: #STANDARD,label: 'Product details' },
+{ id: 'ID1',parentId: 'Colleact',type: #IDENTIFICATION_REFERENCE,position: 20,purpose: #STANDARD },
+{ id: 'HeaderIno' ,type: #DATAPOINT_REFERENCE,purpose: #HEADER,targetQualifier: 'Rating' }]
+ 
+ @UI.hidden: true
+  PId;
+  @UI:{lineItem: [{ position: 10,label: ' '}],
+       identification: [{ position: 10,label: 'Product Image' }]}
+  P_Image_URL;
+  @UI:{lineItem: [{ position: 20,label: 'Product'}],
+       identification: [{ position: 20,label: 'Product' }]}
+  PName;
+  @UI:{lineItem: [{ position: 30,label: 'Category'}],
+       selectionField: [{ position: 20 }],
+       identification: [{ position: 30,label: 'Category' }]}
+  @EndUserText.label: 'Category'
+  PCat;
+  @UI:{lineItem: [{ position: 40,label: 'Supplier'}],
+       selectionField: [{ position: 30 }],
+       identification: [{ position: 40,label: 'Supplier' }]}
+  @EndUserText.label: 'Supplier'
+  Supplier;
+  @UI:{lineItem: [{ position: 50,label: 'Average Ratings', type: #AS_DATAPOINT}],
+       selectionField: [{ position: 40}],
+       identification: [{ position: 50,label: 'Ratings' ,type: #AS_DATAPOINT}]}
+  @UI.dataPoint:{ visualization: #RATING }
+  @UI.selectionField: [{qualifier: 'Rating1'}]
+  Rating;
+  @UI:{identification: [{ position: 60,label: 'Currency' }]}
+  CukyField;
+  @UI:{lineItem: [{ position: 60,label: 'Product Price'  }],
+       identification:[{ position: 70,label: 'Product Price'  }]}
+  Price;
+  @UI:{lineItem: [{ position: 70,label: 'Available Product'  }]}
+  Available;
+    
+}

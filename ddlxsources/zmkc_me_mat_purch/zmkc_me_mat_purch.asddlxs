@@ -1,0 +1,31 @@
+@Metadata.layer: #CORE
+annotate entity ZMKI_MAT_PURCH
+    with 
+{
+    @UI.lineItem: [{ position: 10 }] 
+    @Consumption.valueHelpDefinition: [{ entity: { name: 'I_PurchasingOrganization', element: 'PurchasingOrganization' } }]
+    PurchasingOrg; 
+    
+    @UI.lineItem: [{ position: 20 }]
+    Plant; 
+    
+    @UI.lineItem: [{ position: 30 }] 
+    @Consumption.valueHelpDefinition: [{ entity: { name: 'I_Supplier', element: 'Supplier' } }] 
+    Vendor; 
+    
+    @UI.lineItem: [{ position: 40 }] 
+    VendorName; 
+    
+    @UI.lineItem: [{ position: 50 }] 
+    NetPrice; 
+
+    @UI.lineItem: [{ position: 60 }] 
+    Currency; 
+    
+    @UI.lineItem: [{ position: 80 }] 
+    OrderUnit;
+    
+    @UI.lineItem: [{ position: 90 }]
+    OrderPriceUnit;
+    
+}

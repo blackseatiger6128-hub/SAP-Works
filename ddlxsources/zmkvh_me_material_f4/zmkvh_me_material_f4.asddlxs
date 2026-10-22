@@ -1,0 +1,20 @@
+@Metadata.layer: #CORE
+@EndUserText.label: 'UI for ZMKVH_MaterialF4' 
+@UI.presentationVariant: [{ sortOrder: [ { by: 'Material', direction: #ASC } ] }]
+annotate entity ZMKVH_MATERIALF4
+    with 
+{
+   /* Table columns in the VH dialog */ 
+   @UI.lineItem: [{ position: 10, importance: #HIGH }] 
+   Material; 
+   
+   @Consumption.valueHelpDefinition: [ { entity: { name: 'I_Language', element: 'Language' } } ] 
+   @UI.lineItem: [{ position: 20 }] 
+   LanguageKey; @UI.lineItem: [{ position: 30 }]
+   MaterialDescription; 
+   
+   @Consumption.valueHelpDefinition: [ { entity: { name: 'ZMKVH_MaterialType', element: 'MaterialType' } }  ] 
+   @UI.lineItem: [{ position: 40 }]
+   MaterialType;
+    
+}
