@@ -1,0 +1,30 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_05
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_05.
+
+PARAMETERS: p_date TYPE datum.
+
+SELECT airline,amount,fldate FROM zmk_cds_udemy07( smoker_factor = 3 ,
+                               non_smoker_factor = 2 ,
+                               fldat = @p_date )
+                   INTO TABLE @DATA(lt_tab).
+
+TRY.
+   cl_salv_table=>factory(
+     EXPORTING
+       list_display   = if_salv_c_bool_sap=>false
+*       r_container    =
+*       container_name =
+      IMPORTING
+        r_salv_table   = data(lo_alv)
+     CHANGING
+       t_table        = lt_tab
+   ).
+CATCH cx_salv_msg.
+
+ENDTRY.
+
+lo_alv->display( ).

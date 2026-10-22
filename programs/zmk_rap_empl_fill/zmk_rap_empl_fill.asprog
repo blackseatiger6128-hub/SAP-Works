@@ -1,0 +1,140 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_rap_empl_fill
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_rap_empl_fill.
+
+DATA: itab TYPE TABLE OF zmkdb_employee,
+      itab3 TYPE TABLE OF zmkdb_address,
+      itab2 TYPE TABLE OF zmkdb_contact,
+      itab4 TYPE TABLE OF zmkdb_project,
+      itab5 TYPE TABLE OF zmkdb_skills,
+      itab6 TYPE TABLE OF zmkdb_country.
+
+*fill internal table.
+itab[] = VALUE #(
+                 ( emplid = '1234' fname = 'Thamos'  lname = 'Jung' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1235' fname = 'William'  lname = 'Hall' gender = 'M' designation = 'Associate Consultant' )
+                 ( emplid = '1236' fname = 'Akshay'  lname = 'Kumar' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1237' fname = 'Jacob'  lname = 'Brown' gender = 'M' designation = 'Associate Consultant' )
+                 ( emplid = '1238' fname = 'Brandon'  lname = 'Williams' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1239' fname = 'Oliver'  lname = 'Nelson' gender = 'F' designation = 'Associate Consultant' )
+                 ( emplid = '1240' fname = 'Raj'  lname = 'Kumar' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1241' fname = 'Grace'  lname = 'Smith' gender = 'F' designation = 'Senior Consultant' )
+                 ( emplid = '1242' fname = 'Victoria'  lname = 'Jones' gender = 'M' designation = 'Associate Consultant' )
+                 ( emplid = '1243' fname = 'Rahul'  lname = 'Sharma' gender = 'M' designation = 'Associate Consultant' )
+                 ( emplid = '1244' fname = 'Stella'  lname = 'Davis' gender = 'F' designation = 'Associate Consultant' )
+                 ( emplid = '1245' fname = 'Akira'  lname = 'Lophez' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1246' fname = 'Daniel'  lname = 'Gracia' gender = 'M' designation = 'Senior Consultant' )
+                 ( emplid = '1247' fname = 'Priya'  lname = 'Menon' gender = 'F' designation = 'Associate Consultant' )
+                 ( emplid = '1248' fname = 'John'  lname = 'Miller' gender = 'M' designation = 'Associate Consultant' )
+                 ( emplid = '1249' fname = 'Genki'  lname = 'Lee' gender = 'F' designation = 'Associate Consultant' )
+                 ( emplid = '1250' fname = 'Mahesh'  lname = 'Babu' gender = 'M' designation = 'Associate Consultant' )
+                ).
+
+itab2[] = VALUE #( ( emplid = '1234' phone_num = '9000001234' alt_phone_num = '1000001234' email_id = 'tjung@zmail.com'  alt_email_id = 'tjung@ymail.com' )
+( emplid = '1235' phone_num = '9000001235' alt_phone_num = '1000001235' email_id = 'whall@zmail.com'  alt_email_id = 'whall@ymail.com' )
+( emplid = '1236' phone_num = '9000001236' alt_phone_num = '1000001236' email_id = 'akumarg@zmail.com'  alt_email_id = 'akumar@ymail.com' )
+( emplid = '1237' phone_num = '9000001237' alt_phone_num = '1000001237' email_id = 'jbrown@zmail.com'  alt_email_id = 'jbrown@ymail.com' )
+( emplid = '1238' phone_num = '9000001238' alt_phone_num = '1000001238' email_id = 'bwilliams@zmail.com'  alt_email_id = 'bwilliams@ymail.com' )
+( emplid = '1239' phone_num = '9000001239' alt_phone_num = '1000001239' email_id = 'onelson@zmail.com'  alt_email_id = 'onelson@ymail.com' )
+( emplid = '1240' phone_num = '9000001240' alt_phone_num = '1000001240' email_id = 'rkumar@zmail.com'  alt_email_id = 'rkumar@ymail.com' )
+( emplid = '1241' phone_num = '9000001241' alt_phone_num = '1000001241' email_id = 'gsmith@zmail.com'  alt_email_id = 'gsmith@ymail.com' )
+( emplid = '1242' phone_num = '9000001242' alt_phone_num = '1000001242' email_id = 'vjones@zmail.com'  alt_email_id = 'vjones@ymail.com' )
+( emplid = '1243' phone_num = '9000001243' alt_phone_num = '1000001243' email_id = 'rsharma@zmail.com'  alt_email_id = 'rsharma@ymail.com' )
+( emplid = '1244' phone_num = '9000001244' alt_phone_num = '1000001244' email_id = 'sdavis@zmail.com'  alt_email_id = 'sdavis@ymail.com' )
+( emplid = '1245' phone_num = '9000001245' alt_phone_num = '1000001245' email_id = 'alophez@zmail.com'  alt_email_id = 'alophez@ymail.com' )
+( emplid = '1246' phone_num = '9000001246' alt_phone_num = '1000001246' email_id = 'dgracia@zmail.com'  alt_email_id = 'dgracia@ymail.com' )
+( emplid = '1247' phone_num = '9000001247' alt_phone_num = '1000001247' email_id = 'pmenon@zmail.com'  alt_email_id = 'pmenon@ymail.com' )
+( emplid = '1248' phone_num = '9000001248' alt_phone_num = '1000001248' email_id = 'jmiller@zmail.com'  alt_email_id = 'jmiller@ymail.com' )
+( emplid = '1249' phone_num = '9000001249' alt_phone_num = '1000001249' email_id = 'glee@zmail.com'  alt_email_id = 'glee@ymail.com' )
+( emplid = '1250' phone_num = '9000001250' alt_phone_num = '1000001250' email_id = 'mbabu@zmail.com'  alt_email_id = 'mbabu@ymail.com' )
+  ).
+
+itab3[] = VALUE #( ( emplid = '1234' street = 'Street 1234' city = 'Los Angeles' country = 'US' )
+( emplid = '1235' street = 'Street 1235' city = 'Melbourne' country = 'AU' )
+( emplid = '1236' street = 'Street 1236' city = 'Mumbai' country = 'IN' )
+( emplid = '1237' street = 'Street 1237' city = 'Texas' country = 'US' )
+( emplid = '1238' street = 'Street 1238' city = 'Sydney' country = 'AU' )
+( emplid = '1239' street = 'Street 1239' city = 'New York' country = 'US' )
+( emplid = '1240' street = 'Street 1240' city = 'Bangalore' country = 'IN' )
+( emplid = '1241' street = 'Street 1241' city = 'Brisbane' country = 'US' )
+( emplid = '1242' street = 'Street 1242' city = 'California' country = 'US' )
+( emplid = '1243' street = 'Street 1243' city = 'Hyderabad' country = 'IN' )
+( emplid = '1244' street = 'Street 1244' city = 'New York' country = 'US' )
+( emplid = '1245' street = 'Street 1245' city = 'Frankfurt' country = 'DE' )
+( emplid = '1246' street = 'Street 1246' city = 'Sydney' country = 'AU' )
+( emplid = '1247' street = 'Street 1247' city = 'Bangalore' country = 'IN' )
+( emplid = '1248' street = 'Street 1248' city = 'Sydney' country = 'US' )
+( emplid = '1249' street = 'Street 1249' city = 'Berlin' country = 'DE' )
+( emplid = '1250' street = 'Street 1250' city = 'Hyderabad' country = 'IN' ) ).
+
+itab4[] = VALUE #( ( emplid = '1234' projid = 'XYZ'  project_name = 'XYZ Solutions' project_type = 'IMP' is_current = abap_on duration = '02' )
+( emplid = '1234' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_off duration = '05' )
+( emplid = '1234' projid = 'INT'  project_name = 'Internal Project' project_type = 'SUP' is_current = abap_off duration = '03' )
+( emplid = '1235' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '04' )
+( emplid = '1235' projid = 'INT'  project_name = 'Internal Project' project_type = 'IMP' is_current = abap_off duration = '02' )
+( emplid = '1236' projid = 'BENCH'  project_name = 'Bench' project_type = 'NA' is_current = abap_on duration = '00' )
+( emplid = '1237' projid = 'INT'  project_name = 'Internal Project' project_type = 'IMP' is_current = abap_on duration = '02' )
+( emplid = '1238' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '01' )
+( emplid = '1238' projid = 'XYZ'  project_name = 'XYZ Solutions' project_type = 'IMP' is_current = abap_off duration = '02' )
+( emplid = '1238' projid = 'INT'  project_name = 'Internal Project' project_type = 'SUP' is_current = abap_off duration = '04' )
+( emplid = '1239' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '02' )
+( emplid = '1240' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '03' )
+( emplid = '1240' projid = 'INT'  project_name = 'Internal Project' project_type = 'IMP' is_current = abap_off duration = '03' )
+( emplid = '1241' projid = 'XYZ'  project_name = 'XYZ Solutions' project_type = 'SUP' is_current = abap_on duration = '04' )
+( emplid = '1242' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '02' )
+( emplid = '1242' projid = 'XYZ'  project_name = 'XYZ Solutions' project_type = 'IMP' is_current = abap_off duration = '02' )
+( emplid = '1243' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '03' )
+( emplid = '1244' projid = 'BENCH'  project_name = 'Bench' project_type = 'NA' is_current = abap_on duration = '00' )
+( emplid = '1245' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '01' )
+( emplid = '1246' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'SUP' is_current = abap_on duration = '01' )
+( emplid = '1247' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'IMP' is_current = abap_on duration = '01' )
+( emplid = '1248' projid = 'ABC'  project_name = 'ABC Technologies' project_type = 'SUP' is_current = abap_on duration = '02' )
+( emplid = '1249' projid = 'XYZ'  project_name = 'XYZ Solutions' project_type = 'IMP' is_current = abap_on duration = '02' )
+( emplid = '1249' projid = 'INT'  project_name = 'Internal Project' project_type = 'IMP' is_current = abap_off duration = '01' )
+( emplid = '1250' projid = 'BENCH'  project_name = 'Bench' project_type = 'NA' is_current = abap_on duration = '00' )
+ ).
+
+itab5[] = VALUE #( ( emplid = '1234' projid = 'XYZ' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_on )
+( emplid = '1234' projid = 'XYZ' skillid = 'ODATA' skill_level = 'L2' is_primary = abap_off is_certified = abap_off )
+( emplid = '1234' projid = 'XYZ' skillid = 'FIORI' skill_level = 'L1' is_primary = abap_off is_certified = abap_off )
+( emplid = '1234' projid = 'ABC' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_on )
+( emplid = '1234' projid = 'ABC' skillid = 'ODATA' skill_level = 'L2' is_primary = abap_off is_certified = abap_off )
+( emplid = '1234' projid = 'INT' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_off is_certified = abap_off )
+( emplid = '1235' projid = 'ABC' skillid = 'ABAP' skill_level = 'L2' is_primary = abap_on is_certified = abap_on )
+( emplid = '1235' projid = 'ABC' skillid = 'ODATA' skill_level = 'L1' is_primary = abap_on is_certified = abap_on )
+( emplid = '1235' projid = 'INT' skillid = 'ABAP' skill_level = 'L2' is_primary = abap_off is_certified = abap_off )
+( emplid = '1235' projid = 'INT' skillid = 'ODATA' skill_level = 'L1' is_primary = abap_on is_certified = abap_on )
+( emplid = '1236' projid = 'BENCH' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_off )
+( emplid = '1237' projid = 'INT' skillid = 'ODATA' skill_level = 'L2' is_primary = abap_off is_certified = abap_off )
+( emplid = '1238' projid = 'ABC' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_on )
+( emplid = '1238' projid = 'XYZ' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_off is_certified = abap_on )
+( emplid = '1238' projid = 'INT' skillid = 'ABAP' skill_level = 'L1' is_primary = abap_off is_certified = abap_off )
+( emplid = '1239' projid = 'ABC' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_on )
+( emplid = '1239' projid = 'ABC' skillid = 'ODATA' skill_level = 'L2' is_primary = abap_off is_certified = abap_on )
+( emplid = '1240' projid = 'ABC' skillid = 'FIORI' skill_level = 'L1' is_primary = abap_off is_certified = abap_off )
+( emplid = '1241' projid = 'INT' skillid = 'ABAP' skill_level = 'L3' is_primary = abap_on is_certified = abap_on )
+( emplid = '1242' projid = 'XYZ' skillid = 'ODATA' skill_level = 'L2' is_primary = abap_off is_certified = abap_on )
+( emplid = '1242' projid = 'XYZ' skillid = 'FIORI' skill_level = 'L1' is_primary = abap_off is_certified = abap_off ) ).
+
+itab6[] = VALUE #( (  country = 'AU' logo_url = 'https://png.pngtree.com/png-vector/20221021/ourmid/pngtree-australia-flag-png-image_6369846.png' )
+( country = 'IN' logo_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Flag_of_India.png/2560px-Flag_of_India.png' )
+( country = 'US' "logo_url = 'https://img.freepik.com/premium-vector/made-usa-made-usa-logo-united-states-america-logo_526569-1132.jpg'
+    logo_url = 'https://upload.wikimedia.org/wikipedia/commons/d/de/Flag_of_the_United_States.png' )
+( country = 'DE' logo_url = 'https://static.vecteezy.com/system/resources/thumbnails/011/571/346/small_2x/circle-flag-of-germany-free-png.png' )   ).
+
+DELETE FROM zmkdb_employee.
+DELETE FROM zmkdb_address.
+DELETE FROM zmkdb_contact.
+DELETE FROM zmkdb_project.
+DELETE FROM zmkdb_skills.
+DELETE FROM zmkdb_country.
+
+INSERT zmkdb_employee FROM TABLE itab.
+INSERT zmkdb_contact FROM TABLE itab2.
+INSERT zmkdb_address FROM TABLE itab3.
+INSERT zmkdb_project FROM TABLE itab4.
+INSERT zmkdb_skills FROM TABLE itab5.
+INSERT zmkdb_country FROM TABLE itab6.

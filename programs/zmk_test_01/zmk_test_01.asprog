@@ -1,0 +1,21 @@
+*&---------------------------------------------------------------------*
+*& Report ZMK_TEST_01
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZMK_TEST_01.
+
+CLASS lcl_main DEFINITION.
+  PUBLIC SECTION.
+   CLASS-METHODS: main.
+ENDCLASS.
+
+CLASS lcl_main IMPLEMENTATION.
+  METHOD main.
+
+  ENDMETHOD.
+ENDCLASS.
+
+START-OF-SELECTION.
+
+  lcl_main=>main( ).

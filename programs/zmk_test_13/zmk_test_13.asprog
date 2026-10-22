@@ -1,0 +1,24 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_13
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_13.
+
+data lo_salv type ref to if_salv_gui_table_ida.
+
+lo_salv = cl_salv_gui_table_ida=>create_for_cds_view(
+            iv_cds_view_name      = 'ZMK_CDS_UDEMY19'
+*            io_gui_container      =
+*            io_calc_field_handler =
+          )
+*          CATCH cx_salv_db_connection.
+*          CATCH cx_salv_db_table_not_supported.
+*          CATCH cx_salv_ida_contract_violation.
+*          CATCH cx_salv_function_not_supported.
+.
+lo_salv->fullscreen( )->display( ).
+*CATCH cx_salv_ida_contract_violation.
+
+cl_salv_gui_table_ida=>create_for_cds_view( iv_cds_view_name = 'ZMK_CDS_UDEMY19' )->fullscreen( )->display( ).
+*CATCH cx_salv_ida_contract_violation.

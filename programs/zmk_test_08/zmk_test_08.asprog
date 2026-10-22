@@ -1,0 +1,23 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_08
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_08.
+
+PARAMETERS: p_name TYPE s_carrname.
+
+SELECT * FROM ZMK_CDS_UDEMY17(  i_name = @p_name ) INTO TABLE  @DATA(lt_scarr).
+
+cl_salv_table=>factory(
+ exporting
+    list_display = if_salv_c_bool_sap=>false
+*  r_container  type ref to cl_gui_container optional
+*  container_name  type string optional
+  importing
+    r_salv_table = data(lo_alv)
+   changing t_table = lt_scarr
+" raising cx_salv_msg
+     ).
+
+lo_alv->display( ).

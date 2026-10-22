@@ -1,0 +1,93 @@
+*&---------------------------------------------------------------------*
+*& Report ZMK_RAP_P001
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZMK_RAP_P001.
+
+DATA itab TYPE TABLE OF zmk_saleshdr10.
+
+* fill internal travel table (itab)
+itab = VALUE #( ( salesorderuuid = '02D5290E594C1EDA93815057FD946624'
+                  salesorder = '1000000001'
+                  salesordertype = 'OR'
+                  description = 'iPhone'
+                  soldtoparty = 'Murat Durak'
+                  salesorganization = '0001'
+                  distributionchannel = '01'
+                  documentreason = '1'
+                  totalnetamount = '700.00'
+                  transactioncurrency = 'USD'
+                  createdbyuser = 'MDURAK'
+                  creationat = '20190613111129.2391370'
+                  lastchangedbyuser = 'MDURAK'
+                  lastchangedat = '20190711140753.1472620'
+                  locallastchangedat = '20190711140753.1472620' )
+                ( salesorderuuid = '02D5290E594C1EDA93815057FD946625'
+                  salesorder = '1000000002'
+                  salesordertype = 'OR'
+                  description = 'Lenevo Laptop'
+                  soldtoparty = 'Muhammed Keskin'
+                  salesorganization = '0001'
+                  distributionchannel = '01'
+                  documentreason = '1'
+                  totalnetamount = '1000.00'
+                  transactioncurrency = 'USD'
+                  createdbyuser = 'MKESKIN'
+                  creationat = '20190713111129.2391370'
+                  lastchangedbyuser = 'MKESKIN'
+                  lastchangedat = '20190713111129.2391370'
+                  locallastchangedat = '20190713111129.2391370' )
+                ).
+* delete existing entries in the database table
+DELETE FROM zmk_saleshdr10.
+IF sy-subrc = 0.
+ENDIF.
+* insert the new table entries
+INSERT zmk_saleshdr10 FROM TABLE @itab.
+IF sy-subrc = 0.
+ENDIF.
+
+DATA itabitem TYPE TABLE OF zmk_salesitm10.
+
+* fill internal travel table (itab)
+itabitem = VALUE #( ( salesitemuuid = '12D5290E594C1EDA93815057FD946624'
+                      salesorderuuid = '02D5290E594C1EDA93815057FD946624'
+                      salesorderitem = '00010'
+                      salesorderitemcategory = 'TAQB'
+                      salesorderitemtext = 'iphone'
+                      material = '1110000980'
+                      plant = '010'
+                      orderquantity = '1'
+                      orderquantityunit = 'EA'
+                      netamount = '700'
+                      transactioncurrency = 'USD'
+                      createdbyuser = 'MDURAK'
+                      creationat = '20190613111129.2391370'
+                      lastchangedbyuser = 'MDURAK'
+                      lastchangedat = '20190711140753.1472620'
+                      locallastchangedat = '20190711140753.1472620' )
+                    ( salesitemuuid = '12D5290E594C1EDA93815057FD946625'
+                      salesorderuuid = '02D5290E594C1EDA93815057FD946625'
+                      salesorderitem = '00010'
+                      salesorderitemcategory = 'TAQB'
+                      salesorderitemtext = 'Lenevo Laptop'
+                      material = '1110000980'
+                      plant = '010'
+                      orderquantity = '1'
+                      orderquantityunit = 'EA'
+                      netamount = '1000'
+                      transactioncurrency = 'USD'
+                      createdbyuser = 'MKESKIN'
+                      creationat = '20190613111129.2391370'
+                      lastchangedbyuser = 'MKESKIN'
+                      lastchangedat = '20190711140753.1472620'
+                      locallastchangedat = '20190711140753.1472620' )
+                  ).
+
+* delete existing entries in the database table
+DELETE FROM zmk_salesitm10.
+* insert the new table entries
+INSERT zmk_salesitm10 FROM TABLE @itabitem.
+IF sy-subrc = 0.
+ENDIF.

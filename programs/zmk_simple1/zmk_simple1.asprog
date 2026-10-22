@@ -1,0 +1,19 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_simple1
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_simple1.
+
+PARAMETERS: p_vbtyp TYPE vbak-vbtyp.
+
+START-OF-SELECTION.
+
+  SELECT * FROM ZMK_CDS_SIMPLE1( p_vbtyp = @p_vbtyp )
+    INTO TABLE @DATA(LT_DATA).
+   " WHERE vbtyp = @p_vbtyp.
+
+    IF LT_DATA IS NOT INITIAL.
+      CL_DEMO_OUTPUT=>display( LT_DATA ).
+
+    ENDIF.

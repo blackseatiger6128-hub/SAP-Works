@@ -1,0 +1,22 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_14
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_14.
+
+PARAMETERS: p_carrid TYPE s_carr_id.
+
+data(lo_salv) = cl_salv_gui_table_ida=>create_for_cds_view(
+                  iv_cds_view_name      = 'ZMK_CDS_UDEMY20'
+*                  io_gui_container      =
+*                  io_calc_field_handler =
+                )
+*                CATCH cx_salv_db_connection.
+*                CATCH cx_salv_db_table_not_supported.
+*                CATCH cx_salv_ida_contract_violation.
+*                CATCH cx_salv_function_not_supported.
+.
+lo_salv->set_view_parameters( it_parameters = VALUE #( ( name = 'P_CARRID' value = p_carrid ) ) ).
+
+lo_salv->fullscreen( )->display( ).

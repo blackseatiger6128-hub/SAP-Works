@@ -1,0 +1,42 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_11
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_11.
+
+DATA: lv_sql TYPE string,
+      lt_scarr TYPE TABLE OF scarr,
+      ld_scarr TYPE REF TO data.
+
+TRY.
+
+   DATA(lo_sql) = NEW cl_sql_statement( ).
+
+   lv_sql = |SELECT * FROM SCARR | &
+               |WHERE MANDT = '{ sy-mandt }' | &
+                  |AND CARRID = 'AA'|.
+
+   DATA(lo_result) = lo_sql->execute_query( lv_sql ).
+
+   GET REFERENCE OF lt_scarr INTO ld_scarr.
+   lo_result->set_param_table(  ld_scarr ).
+
+   lo_result->next_package( ).
+   lo_result->close( ).
+
+ CATCH cx_sql_exception.
+
+ ENDTRY.
+
+ TRY.
+ cl_salv_table=>factory(
+  importing
+    r_salv_table = data(lo_scarr)
+   changing t_table = lt_scarr
+     ).
+CATCH cx_salv_msg.
+
+ENDTRY.
+
+lo_scarr->display( ).

@@ -1,0 +1,47 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_15
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_16.
+
+tables: scarr.
+data: lo_range_collector type ref to cl_salv_range_tab_collector.
+
+create object lo_range_collector.
+
+select-options: s_carrid for scarr-carrid.
+
+lo_range_collector->add_ranges_for_name(
+  EXPORTING
+    iv_name   = 'AIRLINE_CODE'
+    it_ranges = s_carrid[]
+).
+
+
+lo_range_collector->get_collected_ranges(
+  IMPORTING
+    et_named_ranges = data(it_select_options)
+).
+
+data(lo_salv) = cl_salv_gui_table_ida=>create(
+                  iv_table_name         = CONV #( 'ZMK_CDS_UDEMY19' )
+*                  io_gui_container      =
+*                  io_calc_field_handler =
+                )
+*                CATCH cx_salv_db_connection.
+*                CATCH cx_salv_db_table_not_supported.
+*                CATCH cx_salv_ida_contract_violation.
+.
+
+lo_salv->set_select_options(
+  EXPORTING
+     it_ranges    = it_select_options
+*    io_condition =
+).
+*CATCH cx_salv_ida_associate_invalid.
+*CATCH cx_salv_db_connection.
+*CATCH cx_salv_ida_condition_invalid.
+*CATCH cx_salv_ida_unknown_name.
+
+lo_salv->fullscreen( )->display( ).

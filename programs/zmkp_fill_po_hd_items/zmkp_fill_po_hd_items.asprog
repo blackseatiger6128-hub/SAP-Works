@@ -1,0 +1,35 @@
+*&---------------------------------------------------------------------*
+*& Report zmkp_fill_po_hd_items
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmkp_fill_po_hd_items.
+
+DATA: lt_po TYPE TABLE OF zmkdb_po_head,
+      lt_items TYPE TABLE OF zmkdb_po_items.
+
+
+       SELECT ebeln AS po_num, bstyp AS doc_cat, bsart AS type,  bukrs as comp_code, ekorg as org, statu as status,
+        lifnr as vendor, '1000' as plant, ernam as create_by," '20220323165909.9304740' as created_date_time,
+       " '20220323165909.9304740' as changed_date_time,
+          ernam as LOCAL_LAST_CHANGED_BY
+          FROM ekko INTO CORRESPONDING FIELDS OF TABLE @lt_po.
+
+        IF lt_po[] IS NOT INITIAL.
+
+           MODIFY zmkdb_po_head FROM TABLE lt_po.
+
+         SELECT p~ebeln AS po_num, p~ebelp AS po_item, p~txz01 AS item_text, p~matnr as material, p~werks as plant, p~lgort as stor_loc,
+          p~menge as qty, p~meins as uom, p~netpr as product_price, k~waers as price_unit,
+           k~ernam as LOCAL_LAST_CHANGED_BY "'235959' as local_last_changed_at
+           FROM ekpo AS p
+           INNER JOIN ekko AS k ON k~ebeln EQ p~ebeln  INTO CORRESPONDING FIELDS OF TABLE @lt_items
+            FOR ALL ENTRIES IN @lt_po
+               WHERE p~ebeln EQ @lt_po-po_num.
+
+          IF lt_items[] IS NOT INITIAL.
+            MODIFY zmkdb_po_items FROM TABLE lt_items.
+          ENDIF.
+
+          COMMIT WORK.
+        ENDIF.

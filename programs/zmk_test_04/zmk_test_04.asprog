@@ -1,0 +1,325 @@
+*&---------------------------------------------------------------------*
+*& Report ZMK_TEST_04
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_04.
+
+TYPES:
+  BEGIN OF ts_head,
+    db_key TYPE string,
+  END OF ts_head,
+
+  BEGIN OF ts_item,
+    db_key     TYPE string,
+    parent_key TYPE string, "relates to a head record
+    status     TYPE string, "relates to a status record
+  END OF ts_item,
+
+  BEGIN OF ts_part,
+    db_key     TYPE string,
+    parent_key TYPE string, "relates to an item record
+    amount     TYPE i,
+  END OF ts_part,
+
+  BEGIN OF ts_status,
+    stat_key TYPE string,
+    descript TYPE string,
+  END OF ts_status,
+
+  tt_head   TYPE SORTED TABLE OF ts_head WITH UNIQUE KEY db_key,
+  tt_item   TYPE SORTED TABLE OF ts_item WITH UNIQUE KEY db_key
+            WITH NON-UNIQUE SORTED KEY key_par COMPONENTS parent_key,
+  tt_part   TYPE SORTED TABLE OF ts_part WITH UNIQUE KEY db_key
+            WITH NON-UNIQUE SORTED KEY key_par COMPONENTS parent_key,
+  tt_status TYPE SORTED TABLE OF ts_status WITH UNIQUE KEY stat_key.
+
+DATA: ls_head TYPE ts_head,
+      ls_item TYPE ts_item.
+
+"We define the relation at both nodes:
+*TYPES: BEGIN OF MESH ts_mesh,
+*         head TYPE tt_head ASSOCIATION _item TO item ON parent_key = db_key
+*                                                     USING KEY key_par,
+*         item TYPE tt_item ASSOCIATION _head TO head ON db_key     = parent_key,
+*       END OF MESH ts_mesh.
+
+"We just define the relation at head, pointing to item:
+"TYPES: BEGIN OF MESH ts_mesh,
+"         head TYPE tt_head ASSOCIATION _item TO item ON parent_key = db_key
+"                                                     USING KEY key_par,
+"         item TYPE tt_item,
+"       END OF MESH ts_mesh.
+
+
+"We just define the relation at item, pointing to head:
+"TYPES: BEGIN OF MESH ts_mesh,
+"         head TYPE tt_head,
+"         item TYPE tt_item ASSOCIATION _head TO head ON db_key = parent_key,"
+"       END OF MESH ts_mesh.
+
+
+*Reverse Associations
+
+*For each association defined in the Mesh, the runtime automatically generates the reverse
+*association, i.e. it swaps source and target node and correspondingly the field order
+*in the relation condition. Such a „mirrored“ association has the same name as the original,
+*but „^“ as prefix and „~“ followed by the new target node (the original source node) as
+*suffix.This suffix is required to guarantee the uniqueness of the association names:
+*For example, if the nodes „head“ and „item“ both have a status field and both an association
+*named „_to_status“, the status node will get two reverse associations:
+
+*^_to_status~head
+
+*^_to_status~item
+
+*Without the suffix, there would be a naming conflict.
+*For the sake of completeness, it should be mentioned that also the „normal“ associations
+*have the name of its target node as suffix. E.g. in option (1), the full name of the
+*association "_item" is "_item~item". Because this suffix is not needed, neither
+*technically (the association names of one node are always unique) nor for readability
+*(by convention the association name contains the target name) it is in general not used.
+
+*If we virtually complete the options (2) and (3) with the generated reverse associations,
+*it will look like this:
+*TYPES: BEGIN OF MESH ts_mesh,
+*  head TYPE tt_head ASSOCIATION _item       TO item ON parent_key = db_key
+*                                                    USING KEY key_par,
+*  item TYPE tt_item ASSOCIATION ^_item~head TO head ON db_key = parent_key,
+*END OF MESH ts_mesh,
+*
+*BEGIN OF MESH ts_mesh,
+*  head TYPE tt_head ASSOCIATION ^_head~item TO item ON parent_key = db_key,
+*  item TYPE tt_item ASSOCIATION _head       TO head ON db_key = parent_key,
+*END OF MESH ts_mesh.
+
+*So option (2) provides the same functionality as option (1), only the names are different
+*("_head" vs. "^_item~head"), therefore there is no need for option (1).
+
+*Option (3) is not exactly the same as option (1) because the USING KEY is missing.
+*Unfortunately, there is no way to specify it inside the Mesh because there is no addition
+*like USING KEY ... FOR REVERSE. Though it is possible to specify a secondary key during
+*the usage of the Mesh, it‘s better to have it centrally in the Mesh definition.
+
+*Now we have everything we need to define a Mesh (using the type definitions from above):
+TYPES:
+  BEGIN OF MESH ts_mesh,
+    head   TYPE tt_head ASSOCIATION _item   TO item   ON parent_key = db_key
+                                                      USING KEY key_par,
+    item   TYPE tt_item ASSOCIATION _part   TO part   ON parent_key = db_key
+                                                      USING KEY key_par
+                        ASSOCIATION _status TO status ON stat_key = status,
+    part   TYPE tt_part,
+    status TYPE tt_status,
+  END OF MESH ts_mesh.
+
+DATA ls_mesh TYPE ts_mesh.
+
+*If you want to execute the examples shown in the next sections in your system
+*you can fill some data in:
+ls_mesh = VALUE #(
+  head   = VALUE #( ( db_key = 'H1' ) ( db_key = 'H2' ) )
+  item   = VALUE #( ( db_key = 'I1' parent_key = 'H1' status = 'O' )
+                    ( db_key = 'I2' parent_key = 'H1' status = 'D' )
+                    ( db_key = 'I3' parent_key = 'H2' status = 'C' )
+                    ( db_key = 'I4' parent_key = 'H1' status = 'O' ) )
+  part   = VALUE #( ( db_key = 'P1' parent_key = 'I1' amount = 10 )
+                    ( db_key = 'P2' parent_key = 'I3' amount = 20 )
+                    ( db_key = 'P3' parent_key = 'I3' amount = 30 )
+                    ( db_key = 'P4' parent_key = 'I4' amount = 40 ) )
+  status = VALUE #( ( stat_key = 'O' descript = 'open' )
+                    ( stat_key = 'C' descript = 'canceled' )
+                    ( stat_key = 'D' descript = 'done' ) ) ).
+
+*How to use a Mesh
+
+*After we have now defined a Mesh, it's time to use it.
+*Paths vs. Path Expressions
+
+*Roughly said, a path is a node followed by a sequence of associations and is the central
+*element to use a Mesh. The most confusing thing about paths is that their behavior depends on
+*where they are used:
+
+*If a path is used in a LOOP AT, within the functional equivalent FOR … IN or within a few
+*changing statements listed in part 3, it behaves like an internal table (as expected), but
+
+*if a path is moved into a variable, passed as parameter to a method or function module,
+*or used in any other operand position, it behaves like a structure.
+
+*Initial Paths
+
+*An initial path is the simplest form of a path and written as
+"Mesh-StartNode\Association[ StartStructure ]". It is built from three parts:
+*Mesh-StartNode: The name of a variable with a Mesh type and name of the node we want to start. It can be any node of the Mesh. Especially, if we have a multi-level-hierarchy, it is not required that it is the root node of this hierarchy.
+*Start Structure: A structure variable which has the line type of the start node
+*Association: The name of an association which is defined for the start node
+
+*If not all target records are needed an optional WHERE condition can be specified,
+*exactly like if it is done in a LOOP statement. Adding the WHERE clause to the
+*LOOP statement itself is not allowed.
+
+*Example: Get all items below ls_head with status "O":
+ls_head = VALUE ts_head( db_key = 'H1' ).
+LOOP AT ls_mesh-head\_item[ ls_head USING KEY key_par WHERE status = 'O' ]
+    ASSIGNING FIELD-SYMBOL(<ls_item>).
+  WRITE: / <ls_item>-db_key.
+ENDLOOP.
+*ls_item = VALUE ts_item( parent_key = 'H1' ).
+*LOOP AT ls_mesh-item\_part[ ls_item WHERE amount GT 20 ]
+*ASSIGNING FIELD-SYMBOL(<ls_item1>).
+*  WRITE: / <ls_item1>-db_key.
+*
+*ENDLOOP.
+*
+*LOOP AT ls_mesh-item\_status[ ls_item WHERE descript CS 'o' ]
+*ASSIGNING FIELD-SYMBOL(<ls_item2>).
+*  WRITE: / <ls_item2>-stat_key.
+*ENDLOOP.
+
+*In this case, the syntax check warns us: „The secondary key "KEY_PAR" is specified in full.
+*However, the primary key is used to access the table. Check whether access using "KEY_PAR"
+*is more efficient“. Ignoring performance, this can be useful if the output is required
+*in the order of the key keyname.
+
+*Path Extensions
+
+*An initial path always starts with a single structure and evaluates to a subset of the records
+*contained in the target node. If the target node also has at least one association, the path
+*can be extended by adding it. Here no start structure can be specified because these are taken
+*from the result of the initial path. Therefore we have a syntactical difference between
+*the first association and the others: The first needs a structure as input and the others
+*neither require nor allow it.
+
+*For example, "ls_mesh-head\_item[ ls_head ]\_part[ ]" returns all parts belonging to all
+*items which themselves belong to ls_head.
+
+*This example could easily be misconstrued to mean that the system evaluates Mesh paths
+*by creating nested LOOPs. Indeed, it is quite easier: A Mesh Path evaluation is a sequence
+*of filter steps, where a subset of source node records goes in and – by applying the relation
+*condition – a duplicate-free subset of target node records comes out, and this sequence
+*starts with a single structure variable coming from outside as first source record.
+*After the last association was evaluated, the subset of records in its target node is called
+*the „result“ of the path.
+
+*As a consequence, the result can never have duplicates. For example, if ls_head has 3 items,
+*2 with status „open“, 1 with status „done“ and none with status „canceled“, the path
+*"ls_mesh-head\_item[ ls_head ]\_status[ ]" delivers two status records: „open“ and „done“:
+
+*Evaluation of LOOP AT ls_mesh-head\_item[ ls_head ]\_status[] INTO ] ls_status
+
+*ls_head                     ls_mesh-item                                            ls_mesh-status
+
+*------    ->item -->        <selected>  db_key  parent_key  status    -->status-->  <selected>  stat_key   descript
+*db_key     db_key              X          I1        H1        O          status         X         O         open
+*------       =                 X          I2        H1        D             =           -         C         cancelled
+*  H1       parent_key          -          I3        H2        C          stat_key       X         D         done
+*                               X          I4        H1        O
+*Evaluation of a Mesh path
+*Like the initial path, inside the brackets an optional WHERE clause can be specified, e.g.
+"ls_mesh-head\_item[ ls_head ]\_part[ WHERE amount > 10 ]".
+
+*Reverse paths can be used in exactly the same way. For example, for an item ls_item, we want to get
+
+*the header:
+*ls_mesh-item\^_item~head[ ls_item ]
+
+*all its siblings, including the item itself:
+*LOOP AT ls_mesh-item\^_item~head[ ls_item ]\_item[ ] INTO ...
+
+*all its siblings, but without the item itself:
+*LOOP AT ls_mesh-item\^_item~head[ ls_item ]\_item[ WHERE db_key <> ls_item-db_key ] INTO ...
+
+*Self-Associations
+
+*Our example used so far is a three-level-hierarchy where each hierarchy level is stored in a separate table.
+*If we need a hierarchy with an unrestricted number of levels, records of all levels must be stored in the same table. Typically this table contains an attribute which is of the same type as its key and this contains the parent record. Examples for such
+*tables are
+
+*TDEVC (table of development packages): Key field is DEVCLASS, and attribute PARENTCL
+*(which is also a DEVCLASS) contains the parent package name
+
+*USR02 (table of users): Key field is BNAME, and attribute ANAME (which is also a BNAME)
+*contains the user who has created this user
+
+
+*To traverse such hierarchies, we need an association where source and target node are
+*identical. Such an association is called a self- or reflexive association.
+*Example using table USR02:
+TYPES:
+  tt_user TYPE SORTED TABLE OF usr02 WITH UNIQUE KEY bname
+               WITH NON-UNIQUE SORTED KEY key_aname COMPONENTS aname,
+
+  BEGIN OF MESH ts_mesh2,
+    user TYPE tt_user ASSOCIATION _creator     TO user ON bname = aname
+                      ASSOCIATION _has_created TO user ON aname = bname
+                                                       USING KEY key_aname,
+  END OF MESH ts_mesh2.
+
+DATA ls_mesh2 TYPE ts_mesh2.
+
+*As described in „Associations“, it‘s only necessary to create one association because the other is already available as the reverse: Instead of "_creator", we could use "^_has_created~user". Here we defined both because of better readability (by the
+*way: associations for the same node are not separated by a comma!)
+
+*Next, we fill the Mesh node with some test data:
+ls_mesh2-user = VALUE #(
+  ( bname = 'ROOT'      aname = 'ROOT' )
+  ( bname = 'USER-A-L1' aname = 'ROOT' )
+  ( bname = 'USER-B-L1' aname = 'ROOT' )
+  ( bname = 'USER-C-L2' aname = 'USER-A-L1' )
+  ( bname = 'USER-D-L2' aname = 'USER-A-L1' )
+  ( bname = 'USER-E-L3' aname = 'USER-C-L2' )
+  ( bname = 'USER-F-L3' aname = 'USER-C-L2' )
+  ( bname = 'USER-G-L3' aname = 'USER-D-L2' )
+  ( bname = 'USER-H-L4' aname = 'USER-E-L3' )
+  ( bname = 'USER-I-L4' aname = 'USER-E-L3' ) ).
+
+
+*For e.g. user USER-C-L2, we want to get
+
+*the user who has created him
+
+*all the users who are created by USER-C-L2
+FIELD-SYMBOLS <ls_user> TYPE usr02.
+
+DATA(ls_myuser) = ls_mesh2-user[ bname = 'USER-C-L2' ].
+WRITE: / 'Source user:', ls_myuser-bname.
+
+WRITE: / 'Creator....:'.
+WRITE ls_mesh2-user\_creator[ ls_myuser ]-bname.
+
+WRITE: / 'Has created:'.
+LOOP AT ls_mesh2-user\_has_created[ ls_myuser ] ASSIGNING <ls_user>.
+  WRITE <ls_user>-bname.
+ENDLOOP.
+
+"Output:
+"Source user: USER-C-L2
+"Creator....: USER-A-L1
+"Has created: USER-F-L3 USER-E-L3
+
+"This leads to an iterative evaluation which stops automatically if no more records are found. So we slightly change our program to:
+WRITE: / 'Creator....:'.
+LOOP AT ls_mesh2-user\_creator+[ ls_myuser ] ASSIGNING <ls_user>.
+  WRITE <ls_user>-bname.
+ENDLOOP.
+
+WRITE: / 'Has created:'.
+LOOP AT ls_mesh2-user\_has_created+[ ls_myuser ] ASSIGNING <ls_user>.
+  WRITE <ls_user>-bname.
+ENDLOOP.
+
+"Output:
+"Source user: USER-C-L2
+"Creator....: USER-A-L1 ROOT
+"Has created: USER-F-L3 USER-E-L3 USER-I-L4 USER-H-L4
+
+"Path Expressions
+
+"If we execute
+ls_head = ls_mesh-head[ db_key = 'H1' ].
+LOOP AT ls_mesh-head\_item[ ls_head ]\_part[ ] ASSIGNING FIELD-SYMBOL(<ls_part>).
+  WRITE: / <ls_part>-db_key.
+ENDLOOP.
+
+"we get a list of all parts connected to the header record (via its items). But if we execute
+ASSIGN ls_mesh-head\_item[ ls_head ]\_part[ ] TO FIELD-SYMBOL(<var>).

@@ -1,0 +1,82 @@
+*&---------------------------------------------------------------------*
+*& Report ZMMJ_UPDATE_HOURS_FOR_DOC
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZMMJ_UPDATE_HOURS_FOR_DOC.
+
+DATA: gt_stok TYPE STANDARD TABLE OF zmmt_cntday_stok,
+      gv_diff TYPE i.
+
+PARAMETERS: p_kabul AS CHECKBOX,
+            p_iptal AS CHECKBOX.
+
+PARAMETERS: p_job AS CHECKBOX.
+
+START-OF-SELECTION.
+
+IF p_job IS NOT INITIAL.
+SELECT * FROM zmmt_cntday_stok
+    INTO TABLE gt_stok
+     WHERE iptalt EQ '00000000'
+       AND kabult EQ '00000000'.
+
+LOOP AT gt_stok ASSIGNING FIELD-SYMBOL(<fs_stok>).
+
+  "iptal edilen saate kadar ilgili 313 kaydının tarih saatine göre ne kadar saat geçtiğini hesapla.
+    CLEAR gv_diff.
+    CALL FUNCTION 'TIMECALC_DIFF'
+      EXPORTING
+        timestamp1       = CONV TIMESTAMP( |{ <fs_stok>-cpudt }{ <fs_stok>-cputm }| )
+        timestamp2       = CONV TIMESTAMP( |{ sy-datum }{ sy-uzeit }| )
+        TIMEZONE         = sy-tzone
+      IMPORTING
+        DIFFERENCE       = gv_diff.
+
+    IF gv_diff > 0.
+      <fs_stok>-hourc = gv_diff / 3600.
+    ENDIF.
+
+ENDLOOP.
+
+IF gt_stok[] IS NOT INITIAL.
+   MODIFY zmmt_cntday_stok FROM TABLE gt_stok.
+   COMMIT WORK.
+ENDIF.
+ENDIF.
+
+* SELECT * FROM ZMMCDSV1_STOK_NAKIL( p_kabul = @p_kabul, p_iptal = @p_iptal )
+*    INTO TABLE @DATA(LT_STOK).
+
+TRY .
+      cl_salv_gui_table_ida=>create_for_cds_view(
+        EXPORTING
+          iv_cds_view_name   = 'ZMMCDSV1_STOK_NAKIL'
+*      io_gui_container      =
+*      io_calc_field_handler =
+        RECEIVING
+          ro_alv_gui_table_ida  = DATA(lo_alv)
+      ).
+    CATCH cx_salv_db_connection.          " Error connecting to database
+    CATCH cx_salv_db_table_not_supported. " DB table / view is not supported
+    CATCH cx_salv_ida_contract_violation. " IDA API contract violated by caller
+    CATCH cx_salv_function_not_supported. " Funcionality is not supported
+  ENDTRY.
+
+  IF lo_alv IS BOUND.
+
+    lo_alv->set_view_parameters( it_parameters = VALUE #( ( name = 'P_KABUL' value = p_kabul )
+                                                          ( name = 'P_IPTAL' value = p_iptal ) ) ) .
+
+    TRY.
+        lo_alv->fullscreen(
+          RECEIVING
+            ro_fullscreen = DATA(lo_full)
+        ).
+      CATCH cx_salv_ida_contract_violation. " IDA API contract violated by caller
+    ENDTRY.
+  ENDIF.
+
+  IF lo_full IS BOUND.
+    lo_full->display( ).
+  ENDIF.

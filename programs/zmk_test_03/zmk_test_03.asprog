@@ -1,0 +1,939 @@
+*&---------------------------------------------------------------------*
+*& Report ZMK_TEST_03
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_03.
+
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+********************1.Fill BAPI XStructure Based on Field Value***************
+*Lets say that you want to change the line items of a sales order using BAPI 'BAPI_SALESORDER_CHANGE'.
+*You first pass data to standard structure of type Bapisditm and then to Xstructure of type Bapisditmx.
+*If the standard structure field is empty you don't want to change the order with space-null value.
+*So you can use an 'IF' statement in order to check if the fields is empty or not.
+*Guess what? Using logical expression 'XSDBOOL' you can bypass the 'IF' statement and fill the Xstructure
+*according to standard structure field value. Lets see how it works:
+
+*DATA(lv_material) = CONV matnr( '1234' ).
+*
+*DATA(lt_order_items_in)  =
+*VALUE bapisditm_tt( ( itm_number = '000010'
+*                      material = lv_material   ) ).
+*
+*DATA(lt_order_items_inx) =
+*VALUE bapisditmx_tt( ( itm_number = '000010'
+*                       updateflag = if_kbas_bapi_call_up_types=>gc_call_up_type_update
+*                       material = xsdbool( lv_material IS NOT INITIAL ) ) ).
+*
+*DATA:lt_return TYPE bapiret2_t.
+*CALL FUNCTION 'BAPI_SALESORDER_CHANGE'
+*  EXPORTING
+*    salesdocument    = CONV bapivbeln-vbeln( '12345678' )
+*    order_header_inx = VALUE bapisdh1x( updateflag = if_kbas_bapi_call_up_types=>gc_call_up_type_update )
+*  TABLES
+*    order_item_in    = lt_order_items_in
+*    order_item_inx   = lt_order_items_inx
+*    return           = lt_return.
+********************1.Fill BAPI XStructure Based on Field Value***************
+
+********************2.Filter and Lines****************************************
+*To get line count based on a certain condition we can use the 'REDUCE' operator. But in this article
+*we would like to present a more 'Advanced' way to perform this task. We can combine the power of Filter
+*and Lines to achieve the same task. Sounds interesting right? Don't forget to declare the internal table
+*as sorted or hashed. Lets see how it work:
+*TYPES:BEGIN OF ty_spfli,
+*        carrid TYPE s_carr_id,
+*      END OF ty_spfli,
+*      tyt_spfli TYPE SORTED TABLE OF ty_spfli WITH NON-UNIQUE KEY carrid.
+*
+*DATA:lt_spfli TYPE tyt_spfli.
+*
+** Get Data
+*SELECT FROM spfli
+*  FIELDS spfli~carrid
+*  INTO TABLE @lt_spfli.
+*
+** Count records where carrid is equal to LH using Reduce
+*DATA(lv_records) = REDUCE i( INIT x = 0
+*                          FOR <l> IN lt_spfli WHERE ( carrid = 'LH' )
+*                          NEXT x = x + 1 ).
+*
+** Count same records using Lines and Filter
+*DATA(lv_records_lines) = lines(
+*FILTER #( lt_spfli WHERE carrid = CONV #('LH') ) ).
+*
+*WRITE: / lv_records,  '-', lv_records_lines.
+********************2.Filter and Lines****************************************
+
+********************3.Reduce for unique count number**************************
+*We have discussed about Reduce Operator in our previous articles. Now we will use reduce in conjunction
+*with group by in order to retrieve unique entries. Lets see how it works :*
+** Get Data
+*SELECT FROM spfli
+*  FIELDS spfli~carrid
+*  INTO TABLE @DATA(lt_spfli).
+*
+** Count Unique Carrid Records
+*DATA(lv_records) = REDUCE i( INIT x = 0 FOR GROUPS <group_key> OF <g> IN lt_spfli
+*                            GROUP BY ( carrid = <g>-carrid )
+*                                 NEXT x = x + 1 ).
+*
+*WRITE: / lv_records.
+********************3.Reduce for unique count number**************************
+
+********************4.VALUE Directly to Method Call***************************
+*You can now use Value Operator to pass value to function or method directly. For instance, in the method call
+*'SET_TABLE_FOR_FIRST_DISPLAY' of our beloved ALV GUI Grid, we can now pass the toolbar buttons that we want
+*to exclude directly into EXPORTING parameter 'it_toolbar_excluding' of the method. Same works of is_variant
+*and is_layout parameters. Quick and easy right?
+
+*DATA: lo_alv_grid TYPE REF TO cl_gui_alv_grid,
+*      lt_fieldcat TYPE lvc_t_fcat,
+*      lt_table    TYPE STANDARD TABLE OF string.
+*
+*lo_alv_grid->set_table_for_first_display(
+* EXPORTING
+*    i_save                        = cl_dba_core_constants=>co_save_layout_by_user
+*    is_variant                    = VALUE disvariant( report = sy-repid
+*                                                      username = sy-uname )
+*    is_layout                     = VALUE lvc_s_layo( stylefname = 'STYLES'
+*                                                      zebra = abap_true
+*                                                      cwidth_opt = abap_true
+*                                                      grid_title = syst-title )
+*    it_toolbar_excluding          = VALUE ui_functions(
+*                                     ( cl_gui_alv_grid=>mc_fc_loc_insert_row )
+*                                     ( cl_gui_alv_grid=>mc_fc_print )
+*                                     ( cl_gui_alv_grid=>mc_fc_loc_copy_row )
+*                                     ( cl_gui_alv_grid=>mc_fc_loc_append_row )
+*                                     ( cl_gui_alv_grid=>mc_fc_info ) )
+*     CHANGING
+*       it_outtab                     = lt_table
+*       it_fieldcatalog               = lt_fieldcat
+*     EXCEPTIONS
+*       invalid_parameter_combination = 1
+*       program_error                 = 2
+*       too_many_lines                = 3
+*       OTHERS                        = 4 ).
+
+********************4.VALUE Directly to Method Call***************************
+
+********************5.VALUE Directly to Where Clause of SQL ******************
+*VALUE operator can also be used directly into WHERE clause of an SQL statement. So, you no longer need a helper variable.
+*Use the operator in order to pass a tale field value and you are good to go. Don't forget to use OPTIONAL.
+*In case the value not found, the exception CX_SY_ITAB_LINE_NOT_FOUND  will not be raised and the default
+*value will be used instead.
+"Lines based on Table Index
+*SELECT SINGLE FROM z_table
+*FIELDS z_table~*
+*WHERE bukrs = @( VALUE #( z_itab[ 1 ]-bukrs OPTIONAL ) )  AND
+*      vkorg = @( VALUE #( z_itab[ 1 ]-vkorg OPTIONAL ) )
+*INTO @DATA(z_structure).
+*
+*"Line based on Condition
+*SELECT SINGLE FROM z_table
+*FIELDS z_table~*
+*WHERE bukrs = @( VALUE #( z_itab[ vbeln = '1000000000' ]-bukrs OPTIONAL ) )  AND
+*      vkorg = @( VALUE #( z_itab[ '1000000000' ]-vkorg OPTIONAL ) )
+*INTO @DATA(z_structure).
+********************5.VALUE Directly to Where Clause of SQL ******************
+
+********************6.Use CONV and LET to Concatenate Values******************
+*The conversion operator CONV converts the argument to the specified data type. That is already known right?
+*But now we can use let expression inside CONV in order to create a local helper variable and assign value to it.
+*Sometimes it can be really handy. It works as follows:
+
+DATA(lv_local) =  CONV string(
+LET article_name = 'Advanced New ABAP'
+    article_authors = 'George Drakos and Dimitris Valouxis'
+IN |The article '{ article_name CASE = UPPER }' created by { article_authors }| ).
+WRITE: / lv_local.
+********************6.Use CONV and LET to Concatenate Values******************
+
+********************7.Perform Null Check in SQL Statement ******************
+*New ABAP SQL has introduced many new Functions which can be used either in ABAP CDS or Open SQL.
+*One of our favorites which is not as widespread as others like 'ROUND','ABS' or 'DIV', is the 'COALESCE'.
+*It works like this:
+"If name1 is null the function will return name2. Else name1.
+
+SELECT SINGLE FROM kna1
+FIELDS coalesce( name1, name2 )
+INTO @DATA(lv_value).
+WRITE: / lv_value.
+********************7.Perform Null Check in SQL Statement ******************
+
+********************8.CORRESPONDING Operator respecting Table Key **********
+*Corresponding is one the most useful new operators SAP introduced with version ABAP 7.4.
+*Using the keyword 'USING' we can now transfer entries between table respecting the table key.
+
+*lt_target = CORRESPONDING #( lt_target FROM lt_company_code USING bukrs = bukrs ).
+********************8.CORRESPONDING Operator respecting Table Key **********
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+********************1.Substring Functions in OpenSQL********************************
+*Substring Function can also be used in SELECT statements. You can either use it as a field of the table-structure
+*or in the where clause. Here's a quick example:
+SELECT FROM vbak
+  FIELDS vbak~vbeln,
+         substring( vbak~ernam,1,5 ) AS trimmed_name_len_5
+  WHERE ernam EQ @( substring_from( val = 'D_IKONAK' sub = 'D' ) )  "syst-uname
+  INTO TABLE @DATA(t_vbak).
+LOOP AT t_vbak INTO DATA(s_vbak).
+  WRITE: / s_vbak-vbeln,
+            s_vbak-trimmed_name_len_5.
+ENDLOOP.
+********************1.Substring Functions in OpenSQL********************************
+
+********************2.Absolute Value in SQL Select Sum Aggregation******************
+*Get absolute value of the field directly from Select Statement
+SELECT FROM prcd_elements AS a
+INNER JOIN vbrk AS b ON a~knumv EQ b~knumv
+FIELDS SUM( abs( kwert ) )
+WHERE b~vbeln EQ '7500000035' AND
+      a~kposn IS NOT INITIAL AND
+      a~kschl EQ 'ZPR0' AND
+      a~kinak IS INITIAL
+INTO @DATA(lv_sum).
+
+WRITE: / '7500000035', '-', 'ZPR0', lv_sum.
+
+********************2.Absolute Value in SQL Select Sum Aggregation******************
+
+********************3.Maximum-Minimum Value using Reduce****************************
+TYPES: ty_rand TYPE STANDARD TABLE OF i WITH DEFAULT KEY INITIAL SIZE 0.
+* Get Random Numbers
+DATA(it_rand) = VALUE ty_rand( FOR v = 1 WHILE v LE 20
+                            ( cl_abap_random_int=>create( seed = cl_abap_random=>seed( )
+                                                          min = 1 max = 500 )->get_next( ) ) ).
+* Min Value
+DATA(min) = REDUCE i( INIT min_value = VALUE #( it_rand[ 1 ] OPTIONAL )
+                      FOR <line> IN it_rand FROM 2
+                      NEXT min_value = COND #( WHEN <line> LT min_value THEN <line>
+                                               ELSE min_value ) ).
+* Max Value
+DATA(max) = REDUCE i( INIT max_value = VALUE #( it_rand[ 1 ] OPTIONAL )
+                      FOR <line> IN it_rand FROM 2
+                      NEXT max_value = COND #( WHEN <line> GT max_value THEN <line>
+                                               ELSE max_value ) ).
+WRITE: / min, max.
+LOOP AT it_rand INTO DATA(is_rand).
+  WRITE: / is_rand.
+ENDLOOP.
+********************3.Maximum-Minimum Value using Reduce****************************
+
+********************4.Table to Range****************************
+*Internal Table to Range Conversion:
+SELECT FROM t001 FIELDS t001~* INTO TABLE @DATA(lt_t001).
+
+DATA(bukrs_range) = VALUE rsdsselopt_t( FOR line IN lt_t001
+                                        sign = if_fsbp_const_range=>sign_include
+                                        option = if_fsbp_const_range=>option_equal
+                                      ( low = line-bukrs ) ).
+*Fill Range Directly from Select Statement:
+SELECT @if_fsbp_const_range=>sign_include AS sign,
+      @if_fsbp_const_range=>option_equal AS option,
+      bukrs AS low,
+      CAST( @space AS CHAR( 4 ) ) AS high
+   FROM t001
+   INTO TABLE @DATA(range_of_comp_codes).
+********************4.Table to Range****************************
+
+********************5.Exact Operator****************************
+*Exact operator is like the 'Underdog' of operators. It is rarely used and often forgotten but it is really useful
+*in some cases. The lossless operator is a constructor operator that executes either a lossless calculation or
+*a lossless assignment. In our example we will use lossless calculation as follows:
+TRY.
+    DATA(lv_exact_result) = EXACT #( LET x = 5 IN  x / 3   ).
+  CATCH cx_sy_conversion_rounding INTO DATA(lo_exception).
+    WRITE:/ | The Rounded Result of Operation 5{ lo_exception->operation }3 equals: { lo_exception->value } |.
+ENDTRY.
+********************5.Exact Operator****************************
+
+*****************6.Value Operator using "LINES OF" Addition*****
+*Value operator is one of the most used operators that ABAP 7.4 introduced. One useful feature that many ignore
+*is the addition of "LINES OF". The addition allows us to append values directly. We can also specify
+*the index of lines to be appended in order to limit append lines.
+DATA(t_1) = VALUE stringtab( ( CONV string( 'Line 1' ) )
+                             ( CONV string( 'Line 2' ) ) ).
+
+DATA(t_2) = VALUE stringtab( ( CONV string( 'Line 3' ) )
+                             ( CONV string( 'Line 4' ) ) ).
+
+DATA(t_3) = VALUE stringtab( ( LINES OF t_1 )
+                             ( LINES OF t_2 FROM 2 )
+                             ( CONV string( 'Line 5' ) ) ).
+
+LOOP AT t_3 INTO DATA(s_3).
+  WRITE: / s_3.
+ENDLOOP.
+
+*****************6.Value Operator using "LINES OF" Addition*****
+
+*****************7.Enumeration as Fixed Values******************
+*Enumerations are like constants but with some extra functionality. The most important one is that if you are trying to
+*call a method with enumeration as formal parameter then the compiler signals an error if the value you are trying to pass
+*has not been defined in the set of Enumeration Values. This functionality comes handy as you avoid any abap error that
+*may occur due to wrong value passed to formal parameter. You can use enumerations in ABAP Application Server 7.51 or later.
+TYPES: BEGIN OF ENUM ty_enum_mm_document_category
+         STRUCTURE mm_document_category BASE TYPE char03,
+         empty VALUE IS INITIAL,
+         pr    VALUE 'PR',
+         rfq   VALUE 'RFQ',
+         qu    VALUE 'QU',
+       END OF ENUM ty_enum_mm_document_category
+       STRUCTURE mm_document_category.
+WRITE: / mm_document_category-pr,
+         mm_document_category-rfq,
+         mm_document_category-qu.
+
+*****************7.Enumeration as Fixed Values******************
+
+*****************8.Repeat Function******************************
+*Repeat creates a string which contains the characters in val as many times as specificed in occ. Simple but effective.
+*Lets dive into an example:
+TRY.
+    DATA(lv_repeat_result) = repeat( val = 'A' occ = 10 ).
+  CATCH cx_sy_strg_par_val.
+ENDTRY.
+
+WRITE: / lv_repeat_result.
+*****************8.Repeat Function******************************
+
+*****************9.Line Index**********************************
+*We can use LINE_INDEX index function to get the line index of a specified record. If no line exists with the specified
+*criteria the function returns zero.
+DATA(t_11) = VALUE stringtab( ( CONV string( 'Line 11' ) )
+                              ( CONV string( 'Line 12' ) ) ).
+
+DATA(lv_line_index) = line_index( t_11[ table_line = CONV string( 'Line 12' ) ] ).
+IF lv_line_index IS NOT INITIAL.
+  WRITE : / |Index for field1 is { lv_line_index }|.
+ELSE.
+  WRITE : / |Index not Found|.
+ENDIF.
+*****************9.Line Index**********************************
+
+*****************10.Line Exists for BAPI Return***************
+*LINE_EXISTS predicate function comes really handy if used after a BAPI call in order to check the return table and
+*execute commit or rollback accordingly.
+DATA:lt_return      TYPE bapiret2_t.
+
+"BAPI Call Here
+IF NOT line_exists( lt_return[ type = cl_cms_common=>con_msg_typ_e ] )  AND
+   NOT line_exists( lt_return[ type = cl_cms_common=>con_msg_typ_a ] ).
+
+  "Commit Work-Success Handling
+ELSE.
+  "Rollback Work-Error Handling
+ENDIF.
+*****************10.Line Exists for BAPI Return***************
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 3>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+*****************1.Switch Operator in Where Clause**************************
+*We can now use switch conditional operator directly into where clause.
+DATA(lv_material_group) = 'BKM'.
+SELECT SINGLE matnr, matkl FROM mara
+      WHERE matkl = @( SWITCH matkl( lv_material_group
+                                     WHEN 'BKM' THEN space
+                                     ELSE lv_material_group ) )
+      INTO @DATA(ls_mara).
+WRITE: / ls_mara-matnr, '-', ls_mara-matkl.
+*****************1.Switch Operator in Where Clause***************************
+
+***********2.Select Directly into Dynamic Data Reference Table***************
+*Instead of using a field symbol as dynamic table before select statement, we can now directly create a data reference table
+*and then assign it to field symbol if needed.
+FIELD-SYMBOLS: <fs_table> TYPE STANDARD TABLE.
+DATA(lv_db_table) = CONV tabname16( 'MARA' ).
+
+SELECT FROM (lv_db_table)
+ FIELDS *
+ INTO TABLE NEW @DATA(lr_table)
+ UP TO 20 ROWS.
+
+ASSIGN lr_table->* TO <fs_table>.
+LOOP AT <fs_table> ASSIGNING FIELD-SYMBOL(<fs_line>).
+  ASSIGN COMPONENT 'MATNR' OF STRUCTURE <fs_line> TO FIELD-SYMBOL(<fs_matnr>).
+  ASSIGN COMPONENT 'MATKL' OF STRUCTURE <fs_line> TO FIELD-SYMBOL(<fs_matkl>).
+  DATA(lv_output) = CONV string( LET v1 = 'Malzeme:' v2 = 'Mal Grubu:' IN |{ v1 } { <fs_matnr> ALPHA = OUT } - { v2 } { <fs_matkl> }| ).
+  WRITE: / lv_output.
+ENDLOOP.
+***********2.Select Directly into Dynamic Data Reference Table***************
+
+***********3.Case Insensitive Search in Open SQL*****************************
+*Using the following code, you don't need to worry about upper/lower case letters saved in database.
+*Particularly useful when filtering using text fields.
+DATA(lv_search_string) = 'deneme'.
+
+DATA(lv_string_for_db) = '%' && to_upper( lv_search_string ) && '%'.
+
+SELECT FROM bkpf
+  FIELDS belnr
+  WHERE upper( bkpf~bktxt ) LIKE @lv_string_for_db
+  INTO TABLE @DATA(lt_bkpf) UP TO 20 ROWS.
+LOOP AT lt_bkpf INTO DATA(lv_belnr).
+  DATA(lv_tabix) = sy-tabix.
+  WRITE: / lv_tabix, ' ', lv_belnr.
+ENDLOOP.
+***********3.Case Insensitive Search in Open SQL*****************************
+
+***********4.Loop at Structure Components using RTTI*****************************
+*Using ABAP Runtime Services we can loop components of structure and get field information regarding kind, length, decimals etc.
+*RTTS is not something new but with the following code snippet we can directly loop components without using an auxiliar components table.
+
+DATA:lv_structure TYPE vbak.
+
+LOOP AT CAST cl_abap_structdescr(
+                cl_abap_typedescr=>describe_by_data( lv_structure )
+                    )->components ASSIGNING FIELD-SYMBOL(<fs_comp>) FROM 1 TO 20.
+  WRITE:/ <fs_comp>-name,<fs_comp>-type_kind,<fs_comp>-length,<fs_comp>-decimals.
+ENDLOOP.
+***********4.Loop at Structure Components using RTTI*****************************
+
+***********5.Numeric Extremum Functions*****************************
+*Now it is easier than ever to compare two numbers.
+DATA(min1) =  nmin( val1 = '2' val2 = '5' )."Min equals to 2
+DATA(max1) =  nmax( val1 = '2' val2 = '5' )."Max equals to 5
+WRITE: / 'Min:' , ' ',  min1, 'Max.', ' ', max1.
+***********5.Numeric Extremum Functions*****************************
+
+***********6.Insert Function*****************************
+*The Insert function inserts the character string specified in substring in the string specified in text.
+DATA(l_string) = 'Article3'.
+DATA(l_result) = insert( val = l_string sub = '_Number_' off = 7 )."Article_Number_3.
+WRITE: / l_result.
+***********6.Insert Function*****************************
+
+***********7.Reverse Function*****************************
+*Reverse functions can be used to reverse letters of a string variable.
+l_string = 'PABA'.
+l_string = reverse( l_string )."Result: ABAP.
+WRITE: / l_string.
+***********7.Reverse Function*****************************
+
+***********8.Call and Instance Class Method without Creating Instance Object*****************************
+*The NEW operator can be used to instantiate the object, create a new data reference variables, new table, new structures etc.
+*It is possible to execute an instance method of a class without having to save the object reference to a variable. It seems
+*like calling a static method. Lets see how it works:
+*NEW lcl_bapi( )->execute( im_filepath       = p_file
+*                          im_container_name = 'CC_CONTAINER_0100'
+*                          im_screen         = '0100' ).
+
+***********8.Call and Instance Class Method without Creating Instance Objects*****************************
+
+***********9.Constructor Operators-Class Method inside String Templates*****************************
+*String templates are very powerful. The text in between the two pipe sign is considered as the character string
+*but inside the pipe sign we can use constructor operators, functions or even call a class method.
+*The below example is from ABAP Cheat Sheets. We highly recommend to check the GitHub repository of Cheat Sheets
+*since there are thousands of code snippets to take ideas for your next program.
+DATA(lv_string_template) = |The time is { cl_abap_context_info=>get_system_time( ) TIME = USER }.|.
+WRITE: / lv_string_template.
+***********9.Constructor Operators-Class Method inside String Templates*****************************
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 3>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 4>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+************************1. Get Domain's Fixed Values*****************************
+*Not particularly complex but especially useful. With a single line of code we can now retrieve domain's
+*fixed values into an internal table.
+DATA lv_koart TYPE bseg-koart.
+
+IF CAST cl_abap_elemdescr( cl_abap_typedescr=>describe_by_data( lv_koart ) )->is_ddic_type( ).
+
+  DATA(lt_domain_values) =  CAST cl_abap_elemdescr(
+                                  cl_abap_typedescr=>describe_by_data( lv_koart )
+                                        )->get_ddic_fixed_values( ).
+
+  LOOP AT lt_domain_values INTO DATA(ls_val).
+    WRITE: / ls_val-low, '-', ls_val-ddtext.
+  ENDLOOP.
+
+ENDIF.
+************************1. Get Domain's Fixed Values*****************************
+
+************************2. Dynamic Read of Internal Table*****************************
+*Using parenthesis, we can read an internal table with dynamic key field. However, keep in mind that
+*if the field does not exist in table then an ABAP Error will be raised.
+
+DATA(lt_vbak)        = VALUE tab_vbak( ( vbeln = '1200000008' ) ).
+DATA(lv_column_name) = CONV dd03d-fieldname( 'VBELN' ).
+
+READ TABLE lt_vbak WITH KEY (lv_column_name) = '1200000008' TRANSPORTING NO FIELDS.
+
+IF syst-subrc IS INITIAL.
+  "Entry Exists
+  WRITE: / ' Vbeln Exists'.
+ENDIF.
+
+***********************2. Dynamic Read of Internal Table*****************************
+
+***********************3.Create Dynamic Range for any Variable using RTTC*****************
+*Utilizing RTTC capabilities it now easier than ever to create any type of object. In our case, we will create
+*a range using the type of variable lv_data. Lets check how it works:
+DATA lv_data TYPE vbak-vbeln.
+
+"Create component table
+DATA(lt_component) = VALUE abap_component_tab(
+        ( name = 'SIGN'   type = CAST cl_abap_datadescr( cl_abap_elemdescr=>describe_by_name( CONV rollname( 'DDSIGN'     ) ) ) )
+        ( name = 'OPTION' type = CAST cl_abap_datadescr( cl_abap_elemdescr=>describe_by_name( CONV rollname( 'DDOPTION'   ) ) ) )
+        ( name = 'LOW'    type = CAST cl_abap_datadescr( cl_abap_elemdescr=>describe_by_data( lv_data ) ) )
+        ( name = 'HIGH'   type = CAST cl_abap_datadescr( cl_abap_elemdescr=>describe_by_data( lv_data ) ) )
+          ).
+
+"Create Table Type Descriptor
+DATA(lo_tabledescr)  = cl_abap_tabledescr=>create( p_line_type  = cl_abap_structdescr=>create( lt_component )
+                                                   p_table_kind = cl_abap_tabledescr=>tablekind_std
+                                                   p_key_kind   = cl_abap_tabledescr=>keydefkind_default
+                                                   p_unique     = abap_false ).
+
+DATA lo_ref TYPE REF TO data.
+
+CREATE DATA lo_ref TYPE HANDLE lo_tabledescr.
+ASSIGN lo_ref->* TO FIELD-SYMBOL(<fs_range>).
+IF 1 = 2.
+
+ENDIF.
+***********************3.Create Dynamic Range for any Variable using RTTC*****************
+
+***********************4. Corresponding with Lookup Table*********************
+*This version of corresponding performs a lookup on another internal table. Works just like a LEFT OUTER JOIN.
+*If the lookup table contains no fields matching original table, then only the original table contents are transferred to the result.
+
+TYPES:BEGIN OF t_country,
+        country      TYPE i_countrytext-country,
+        country_text TYPE i_countrytext-countryname,
+      END OF t_country,
+
+      tt_country TYPE STANDARD TABLE OF t_country WITH DEFAULT KEY.
+
+DATA lookup TYPE HASHED TABLE OF i_countrytext WITH UNIQUE KEY country.
+
+DATA(original) = VALUE tt_country( ( country = 'GR' )
+                                   ( country = 'DE' ) ).
+
+SELECT FROM i_countrytext
+  FIELDS i_countrytext~*
+  WHERE language EQ @syst-langu
+  INTO TABLE @lookup.
+
+DATA(result) = CORRESPONDING tt_country( original
+                                         FROM    lookup
+                                         USING   country      = country
+                                         MAPPING country_text = countryname  ).
+LOOP AT result INTO DATA(s_result).
+  WRITE: / s_result-country, '-', s_result-country_text.
+ENDLOOP.
+***********************4. Corresponding with Lookup Table*********************
+
+********************5. Final Declaration Operator( ABAP for Cloud )*****************
+*Variables that are created using 'FINAL' operator can only be set once, just like constants.
+*If a change occurs for the variable then a syntax error is fired.
+*final(lv_article_name) = 'Advanced New ABAP Part 4'.
+********************5. Final Declaration Operator( ABAP for Cloud )*****************
+
+********************6. Append/Insert Corresponding****************
+*In our previous article, Advanced New ABAP Part 1, we saw corresponding operator respecting table key to transfer entries between tables.
+*-We can now use the corresponding operator together with append and insert.
+DATA(lt_vbak2) = VALUE tab_vbak( ).
+
+SELECT SINGLE FROM vbap
+  FIELDS vbap~vbeln AS order, vbap~erdat AS creation_date, vbap~ernam
+  INTO @DATA(ls_vbap).
+
+INSERT CORRESPONDING #( ls_vbap MAPPING vbeln = order
+                                        erdat = creation_date
+                                EXCEPT ernam ) INTO TABLE lt_vbak2.
+********************6. Append/Insert Corresponding****************
+
+********************7. Filter with IN*******************************
+*Have you ever had the need to inner join internal tables? Now it is possible in ABAP with the help of Filter and IN.
+*In our example, we join two tables( lt_data and lt_orders ) and we can also filter the matched entries even further if necessary.
+
+TYPES:BEGIN OF t_orders,
+        document_number TYPE vbak-vbeln,
+      END OF t_orders,
+
+      tt_orders TYPE SORTED TABLE OF t_orders WITH UNIQUE KEY document_number.
+
+DATA(lt_orders) = VALUE tt_orders( ( document_number = '0000000001' ) ).
+
+DATA lt_data TYPE SORTED TABLE OF vbak WITH UNIQUE KEY vbeln.
+SELECT FROM vbak
+   FIELDS *
+   INTO CORRESPONDING FIELDS OF TABLE @lt_data
+   UP TO 100 ROWS.
+
+DATA(lt_filtered_table) = FILTER #( lt_data IN lt_orders WHERE vbeln = document_number ).
+IF 1 = 2.
+
+ENDIF.
+
+********************7. Filter with IN*******************************
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 4>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+*
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 5>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+********************1.Append Custom Lines using VALUE Operator***********************
+*Append lines of internal table to another one, using VALUE constructor operator. Now there is no need for temporary tables
+*to convert a table to the target one.
+TYPES: BEGIN OF t_line,
+         id   TYPE c LENGTH 1,
+         text TYPE c LENGTH 20,
+       END OF t_line,
+
+       tt_tab TYPE SORTED TABLE OF t_line WITH UNIQUE KEY id.
+
+DATA(lt_mapping) = VALUE tt_tab( ( id = 'X' text = 'Option 1' )
+                                 ( id = 'Y' text = 'Option 2' )
+                                 ( id = 'Z' text = 'Option 3' ) ).
+
+DATA(dropdown_alias) = VALUE lvc_t_dral( ).
+
+APPEND LINES OF VALUE lvc_t_dral( FOR <fs> IN lt_mapping ( handle    = '3'
+                                                           int_value = <fs>-id
+                                                           value     = <fs>-text )
+                                ) TO dropdown_alias.
+IF 1 = 2.
+
+ENDIF.
+
+********************1.Append Custom Lines using VALUE Operator************************
+
+********************2. Advanced Filtering of Internal Table************************
+*Instead of using FILTER operator you can now use VALUE in conjunction with LINES OF and COND.
+*Plus it can also be used for any type of internal table.
+
+DATA lt_flights TYPE /iwfnd/sflight_flight_t.
+
+SELECT FROM sflight AS flight
+   FIELDS carrid,
+          connid,
+          fldate
+   INTO CORRESPONDING FIELDS OF TABLE @lt_flights.
+
+DATA(lt_filtered_flights) = VALUE /iwfnd/sflight_flight_t( FOR <fs2> IN lt_flights
+                                   ( LINES OF COND #( WHEN  <fs2>-fldate LE syst-datum
+                                                      THEN VALUE #( ( <fs2> ) ) )
+                                             )
+                                           ).
+LOOP AT lt_filtered_flights INTO DATA(s_fl).
+  WRITE: / s_fl-carrid, '-', s_fl-connid, '-', s_fl-fldate.
+ENDLOOP.
+
+********************2. Advanced Filtering of Internal Table************************
+
+********************3.Use Indicator Structure to Update Selected Fields(7.55 and After)**********
+*Using indicator structure, the DML operator UPDATE, now only updates the databases fields where indicator is set to abap_true.
+*No need to worry about ruining the database anymore.
+
+*TYPES ty_sflight TYPE sflight WITH INDICATORS set_ind.
+*DATA  lt_sflight TYPE STANDARD TABLE OF ty_sflight WITH DEFAULT KEY.
+*
+*SELECT FROM sflight
+*  FIELDS carrid, connid, fldate, price
+*  INTO CORRESPONDING FIELDS OF TABLE @lt_sflight
+*  UP TO 5 ROWS.
+*
+*IF syst-subrc IS INITIAL.
+*
+*  LOOP AT lt_sflight ASSIGNING FIELD-SYMBOL(<fs>).
+*
+*    <fs>-price *= '10'.
+*    <fs>-set_ind-price = abap_true.
+*
+*  ENDLOOP.
+*
+*  UPDATE sflight FROM TABLE @lt_sflight INDICATORS SET STRUCTURE set_ind.
+*
+*ENDIF.
+
+********************3.Use Indicator Structure to Update Selected Fields(7.55 and After)**********
+
+*******************4.Null Indicator Structure************************
+**It is possible to mark columns whose result set contains NULL directly from SELECT Statement
+*using the Null Indicator structure.
+
+SELECT FROM scarr AS airline
+LEFT OUTER JOIN spfli AS flight_schedule ON airline~carrid EQ flight_schedule~carrid
+FIELDS airline~carrid                           AS airline_code,
+            MAX( flight_schedule~distid ) AS distance
+GROUP BY airline~carrid
+INTO TABLE @DATA(lt_flights_per_airline)
+INDICATORS NULL STRUCTURE null_indicator.
+IF 1 = 2.
+
+ENDIF.
+*******************4.Null Indicator Structure************************
+
+*******************5.Count Number Of Specific Data Records************************
+*In a previous part of the article, we included a way to count number of internal table record using reduce and filter.
+*Now we will do the same but using the constructor operator VALUE.
+TYPES:BEGIN OF ty_spfli,
+        carrid TYPE s_carr_id,
+      END OF ty_spfli,
+      tyt_spfli TYPE SORTED TABLE OF ty_spfli WITH NON-UNIQUE KEY carrid.
+SELECT FROM spfli
+  FIELDS spfli~carrid
+  INTO TABLE @DATA(lt_spfli).
+DATA(lv_records) = lines( VALUE tyt_spfli( FOR line2 IN lt_spfli WHERE ( carrid EQ 'LH' ) ( line2 ) ) ).
+WRITE: / lv_records.
+*******************5.Count Number Of Specific Data Records************************
+
+*******************6.Transport Entries to Internal Table Discarding Duplicates************************
+*Using CORRESPODING constructor operator, we can transport entries between several tables to a target one,
+*discarding duplicates and preserving type.
+
+TYPES:
+  gtyt_interger        TYPE STANDARD TABLE OF i WITH EMPTY KEY,
+  gtyt_interger_sorted TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
+
+DATA(lt_table1) = VALUE gtyt_interger( ( 1 ) ( 9 ) ( 12 ) ( 16 ) ).
+DATA(lt_table2) = VALUE gtyt_interger( ( 4 ) ( 10 ) ( 12 ) ( 20 ) ).
+
+DATA(lt_table3) = CORRESPONDING gtyt_interger_sorted( BASE ( lt_table1 ) lt_table2  DISCARDING DUPLICATES ) .
+LOOP AT lt_table3 INTO DATA(lv_num).
+  WRITE: / lv_num.
+ENDLOOP.
+*******************6.Transport Entries to Internal Table Discarding Duplicates************************
+
+*******************7.MIN/MAX Values of Internal Table************************
+**Ιnstead of using comparison operators in the REDUCE operator, we can utilize NMAX and NMIN'numeric extremum
+*functions to achieve the same result. More elegant right?
+
+*SELECT FROM vbak
+*  FIELDS vbak~vbeln,vbak~netwr AS net_value
+*  WHERE netwr IS NOT INITIAL
+*  INTO TABLE @DATA(lt_orders2)
+*  UP TO 100 ROWS.
+*DATA(lv_max) = REDUCE i( INIT max2 TYPE vbak-netwr
+*                    FOR <fs3> IN lt_orders2
+*                     NEXT max2 = nmax( val1 = <fs3>-net_value
+*                                 val2 = max2 ) ).
+*WRITE: / lv_max.
+*******************7.MIN/MAX Values of Internal Table************************
+
+*******************8.Internal Table to String************************
+*Uncomplicated and extremely beneficial. Instead of using a Function Module or a constructor operator,
+*we can now use the Concatenation Function to convert a table to string variable. Note that the internal table
+*is expected to be an index table with character-like row type.
+
+DATA(lt_table) = VALUE string_t( ( CONV string( 'This is article ' ) ) ( CONV string( 'Number 5' ) ) ).
+DATA(lv_string) = concat_lines_of( table = lt_table sep = CONV string( '-' ) ).
+WRITE: / lv_string.
+*******************8.Internal Table to String************************
+
+************<<<<<<<<<<<<<<<<<<<<<<<<<<PART 5>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+************<<<<<<<<<<<<<<<<<<<<<<LOOP AT with GROUP BY-NEW ABAP>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+*LOOP AT with GROUP BY - groups the rows of the internal table and executes a loop across the groups. There are two phases in this loop variant
+*1) Grouping - Loop will be executed on the group based on the group key and rows will be assigned to a group based on the group key.
+*2) Group loop - Each row in the group can be accessed here. Loop at group is defined inside the main loop.
+*Loop events like 'AT NEW' can be handled with GROUP BY with more features.
+*Components of LOOP AT .. GROUP BY
+*GROUP SIZE - Number of rows in the internal table for the particular group key.
+*GROUP INDEX - Index of the group from Main loop iteration.
+*REFERENCE INTO DATA - Assiging the group data into a seperate internal table to access inside the LOOP GROUP.
+*ASCENDING / DESCENDING - sort the groups by the group key in ascending or descending order before the group loop is executed.
+*WITHOUT MEMBERS - constructs groups but there is not access to the rows of the groups in the group loop. If the addition WITHOUT MEMBERS is specified.
+*The addition WITHOUT MEMBERS is used to improve performance in all cases where the content of the groups is not required.
+*LOOP AT GROUP. Group loop to access each row of the group.
+*Here is my sample code to understand LOOP AT with GROUP BY and some group features.
+TYPES ty_t_mard TYPE SORTED TABLE OF mard WITH UNIQUE KEY matnr werks lgort.
+DATA lt_mard TYPE ty_t_mard.
+SELECT * FROM mard INTO TABLE lt_mard.
+DATA : lv_stock TYPE mard-labst.
+LOOP AT lt_mard INTO DATA(wa_mard) GROUP BY ( matnr = wa_mard-matnr
+                                              size = GROUP SIZE )
+                                              REFERENCE INTO DATA(group1).
+  CLEAR : lv_stock.
+  WRITE : / group1->matnr , group1->size.
+
+  LOOP AT GROUP group1 ASSIGNING FIELD-SYMBOL(<mard>).
+    ADD <mard>-labst TO lv_stock.
+  ENDLOOP.
+
+  WRITE :/ 'Total:' ,  lv_stock.
+
+ENDLOOP.
+************<<<<<<<<<<<<<<<<<<<<<<LOOP AT with GROUP BY-NEW ABAP>>>>>>>>>>>>>>>>>>>>>>>*******************************
+
+************<<<<<<<<<<<<<<<<<<<<<<Corresponding # in New ABAP>>>>>>>>>>>>>>>>>>>>>>*******************************
+*CORRESPONDING function in ABAP helps to perform MOVE-CORRESPONDING function with additional options of MAPPING rules and EXCEPT.
+*This function can be used for both structures and internal tables.
+*MAPPING - Move the data from a source field to different target field.
+*EXCEPT - Fields in EXCEPT option will not be filled in target structure.
+*CORRESPONDING # will only transfer the fields matching the source structure and other fields in target structure will be initialized.
+*CORRESPONDING with BASE - Retains the target structure fields which are not matching the source structure and moves matching fields from source to target.
+* BASE operator can also be used along with CORRESPONDING function.
+TYPES : BEGIN OF ty_tab1,
+          field1 TYPE char10,
+          field2 TYPE char10,
+          field3 TYPE char10,
+        END OF ty_tab1.
+
+TYPES : BEGIN OF ty_tab2 ,
+          field2 TYPE char10,
+          field3 TYPE char10,
+          field4 TYPE char10,
+        END OF ty_tab2.
+
+DATA(lt_tab1) = VALUE ty_tab1( field1 = '123'  field2 = '12'  field3 = '234' ).
+
+DATA(lt_tab2) = CORRESPONDING ty_tab2( lt_tab1 ).
+
+DATA(lt_tab3) = CORRESPONDING ty_tab2( lt_tab1 EXCEPT field3 ).
+
+DATA(lt_tab4) = CORRESPONDING ty_tab2( lt_tab1 MAPPING field4 = field1 ).
+
+**Same applies to internal table.
+*TYPES : BEGIN OF ty_tab1,
+*          field1 TYPE char10,
+*          field2 TYPE char10,
+*          field3 TYPE char10,
+*        END OF ty_tab1.
+*
+*TYPES : BEGIN OF ty_tab2,
+*          field2 TYPE char10,
+*          field3 TYPE char10,
+*          field4 TYPE char10,
+*        END OF ty_tab2.
+TYPES: tt_tab1 TYPE STANDARD TABLE OF ty_tab1 WITH EMPTY KEY,
+       tt_tab2 TYPE STANDARD TABLE OF ty_tab2 WITH EMPTY KEY.
+
+DATA(lt_tab11) = VALUE tt_tab1( ( field1 = '123'  field2 = '12'  field3 = '234')
+                               ( field1 = '145'  field2 = '56'  field3 = '123')
+                               ( field1 = '45'  field2 = '86'  field3 = '68' ) ).
+
+DATA(lt_tab12) = CORRESPONDING tt_tab2( lt_tab11 ).
+
+DATA(lt_tab13) = CORRESPONDING tt_tab2( lt_tab11 EXCEPT field3 ).
+
+DATA(lt_tab14) = CORRESPONDING tt_tab2( lt_tab11 MAPPING field4 = field1 ).
+************<<<<<<<<<<<<<<<<<<<<<Corresponding # in New ABAP>>>>>>>>>>>>>>>>>>>>>>>*********************
+
+************<<<<<<<<<<<<<<<<<<<<FILTER in New ABAP>>>>>>>>>>>>>>>>>>>>>>>*********************
+*FILTER provides a way to query an internal table with key parameters defined for internal table.
+*Filter can be done with single values or with filter table.
+*The internal table  must have at least one sorted key or one hash key used for access.
+*The key can be a primary key or secondary key defined in the table type declaration.
+*Filter operation will not work on internal table without a sort key or hash key.
+
+" Filter with single value.
+
+DATA lt_sflight TYPE STANDARD TABLE OF sflight
+WITH NON-UNIQUE SORTED KEY carrid
+COMPONENTS carrid.
+
+SELECT * FROM sflight INTO TABLE lt_sflight.
+
+DATA(lt_sflight_aa) = FILTER #( lt_sflight USING KEY carrid
+                                WHERE carrid = CONV #( 'AA' ) ).
+
+" Filter with Filter table.
+
+TYPES: BEGIN OF ty_carrid,
+         carrid TYPE sflight-carrid,
+       END OF ty_carrid,
+       tt_filter TYPE SORTED TABLE OF ty_carrid
+                   WITH UNIQUE KEY carrid.
+
+DATA(lt_filter) = VALUE tt_filter( ( carrid = 'AA')
+                                   ( carrid = 'AB' )
+                                   ( carrid = 'AC' ) ).
+
+DATA(lt_filter_tab) = FILTER #( lt_sflight IN lt_filter
+                                WHERE carrid = carrid ).
+*EXCEPT can be used with filter statement in single values as well as filter table .
+*If EXCEPT is specified in filter with single values, the rows from internal table are selected that do not meet the WHERE condition.
+*If EXCEPT is specified in filter table, the rows from internal table are selected for which there is no row in filter table.
+*Internal table and filter table need not to be same type.
+************<<<<<<<<<<<<<<<<<<<FILTER in New ABAP>>>>>>>>>>>>>>>>>>>>>>>*********************
+
+************<<<<<<<<<<<<<<<<<<Conversion Exit ALPHA in New ABAP>>>>>>>>>>>>>>>>>>>>>>>*********************
+*New ABAP provides a new feature with keyword ALPHA (IN/OUT) to convert value into SAP internal format or external format.
+*FM 'CONVERSION_EXIT_ALPHA_INPUT' is used to convert external to internal number and will add leading zeros.
+*FM 'CONVERSION_EXIT_ALPHA_OUTPUT' is used to convert internal to external format and will truncate leading zeros.
+*Sample code for conversion exit input.
+"OLD ABAP
+
+*CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+*  EXPORTING
+*    input  = iv_ext_val
+*  IMPORTING
+*    output = lv_int_val.
+*
+*"NEW ABAP
+*
+*DATA(lv_int_val) = | { lv_ext_val ALPHA = IN } |.
+*
+*"Sample code for conversion exit output
+*"OLD ABAP
+*
+*CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+*  EXPORTING
+*    input  = lv_int_val
+*  IMPORTING
+*    output = lv_ext_val.
+*
+*"NEW ABAP
+*
+*DATA(lv_ext_val) = | { lv_int_val ALPHA = OUT } |.
+
+*Please note this ALPHA keyword can be used only with conversion exit ALPHA not for any other conversion exit routines.
+*This option adds leading zeroes to numeric sequences or removes them for the data type string, c, or n.
+************<<<<<<<<<<<<<<<<<Conversion Exit ALPHA in New ABAP>>>>>>>>>>>>>>>>>>>>>>*********************
+
+************<<<<<<<<<<<<<<<<<MESH Table type in New ABAP>>>>>>>>>>>>>>>>>>>>>>*********************
+*MESH Table type option allows the developer to create relationship between the internal tables and access the data
+*using this relationship and will work only with components of type internal table or reference of internal table.
+*I have created simple report with MARA and MARC to have clear understanding MESH concept and implementation.
+*MESH type has to be declared explicitly. Components should be of internal table.
+*Components are called nodes in MESH.
+*ASSOCIATION - to define the relationship from source node to target node.
+*TO - target node.
+*ON - fields for relationship between the nodes.
+
+"MESH
+
+TYPES ty_t_mara TYPE SORTED TABLE OF mara
+ WITH UNIQUE KEY matnr.
+
+TYPES ty_t_marc TYPE SORTED TABLE OF marc
+ WITH UNIQUE KEY matnr werks.
+
+DATA lt_mara TYPE ty_t_mara.
+DATA lt_marc TYPE ty_t_marc.
+
+SELECT * FROM mara INTO TABLE lt_mara UP TO 100 ROWS.
+
+SELECT * FROM marc INTO TABLE lt_marc
+      FOR ALL ENTRIES IN lt_mara
+         WHERE matnr EQ lt_mara-matnr.
+
+*# MESH type declaration
+
+TYPES : BEGIN OF MESH ty_t_mesh,
+          t_mara TYPE ty_t_mara ASSOCIATION _marc TO t_marc
+                                 ON matnr = matnr ,
+          t_marc TYPE ty_t_marc ASSOCIATION _mara TO t_mara
+                                 ON matnr = matnr ,
+        END OF MESH ty_t_mesh.
+
+DATA : lt_mesh TYPE ty_t_mesh.
+
+lt_mesh-t_mara = lt_mara.
+lt_mesh-t_marc = lt_marc.
+
+LOOP AT lt_mara ASSIGNING FIELD-SYMBOL(<mara>).
+
+  WRITE : / <mara>-matnr , <mara>-mtart.
+
+  LOOP AT lt_mesh-t_mara\_marc[ <mara> ] ASSIGNING FIELD-SYMBOL(<marc>).
+    WRITE :/ <marc>-werks.
+  ENDLOOP.
+
+ENDLOOP.
+
+"Once association are declared in MESH type, internal tables can be accessed through this association
+"instead of using keys every time when internal table is used.
+************<<<<<<<<<<<<<<<<<MESH Table type in New ABAP>>>>>>>>>>>>>>>>>>>>>>*********************

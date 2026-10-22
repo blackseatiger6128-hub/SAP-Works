@@ -1,0 +1,33 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_09
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_10.
+
+DATA: lv_carrid TYPE s_carrid,
+      lt_scarr TYPE TABLE OF zmk_cds_udemy18,
+      l_where TYPE string.
+
+SELECT-OPTIONS: s_carrid FOR lv_carrid.
+
+START-OF-SELECTION.
+  l_where = cl_shdb_seltab=>combine_seltabs(
+                EXPORTING
+                   it_named_seltabs = VALUE #( ( name = 'CARRID' dref = REF #( s_carrid[] ) ) )
+                    iv_client_field = 'MANDT' ).
+
+SELECT * FROM zmk_cds_udemy18(  sel_opt_carrid = @l_where ) INTO TABLE @lt_scarr.
+
+cl_salv_table=>factory(
+ exporting
+    list_display = if_salv_c_bool_sap=>false
+*  r_container  type ref to cl_gui_container optional
+*  container_name  type string optional
+  importing
+    r_salv_table = data(lo_alv)
+   changing t_table = lt_scarr
+" raising cx_salv_msg
+     ).
+
+lo_alv->display( ).

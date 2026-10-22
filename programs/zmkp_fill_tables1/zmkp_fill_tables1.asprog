@@ -1,0 +1,158 @@
+*&---------------------------------------------------------------------*
+*& Report zmkp_fill_tables1
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmkp_fill_tables1.
+
+DATA itab TYPE TABLE OF zmk_prd_price.
+
+itab = VALUE #( ( bptype = 'DIST_PERC' bpperc = 70 )
+                ( bptype = 'DELR_PERC' bpperc = 80 ) ).
+
+* delete existing entries in the database table
+DELETE FROM zmk_prd_price.
+IF sy-subrc = 0.
+ENDIF.
+* insert the new table entries
+INSERT zmk_prd_price FROM TABLE @itab.
+IF sy-subrc = 0.
+ENDIF.
+
+*DATA itab TYPE TABLE OF zmk_hr_empl.
+*DATA itab2 TYPE TABLE OF zmk_hr_ctc_comp.
+*
+*itab = VALUE #( ( empl_id = '1000' fname = 'James' lname = 'Bond' ctc_pa = '1000000' currency = 'INR'   )
+*                ( empl_id = '1001' fname = 'Spider' lname = 'Man' ctc_pa = '1500000' currency = 'INR'   )
+*                ( empl_id = '1002' fname = 'Thomas' lname = 'King' ctc_pa = '2000000' currency = 'INR'   )
+*                ( empl_id = '1003' fname = 'John' lname = 'Prince' ctc_pa = '1800000' currency = 'INR'   )
+*                ( empl_id = '1004' fname = 'Chris' lname = 'Charms' ctc_pa = '2200000' currency = 'INR'   ) ).
+*
+** delete existing entries in the database table
+*DELETE FROM zmk_hr_empl.
+*IF sy-subrc = 0.
+*ENDIF.
+** insert the new table entries
+*INSERT zmk_hr_empl FROM TABLE @itab.
+*IF sy-subrc = 0.
+*ENDIF.
+*
+*itab2 = VALUE #( ( comp_id = 'BASIC' comp_perc = '70' )
+*                 ( comp_id = 'HRA' comp_perc = '20' )
+*                 ( comp_id = 'VARIABLE' comp_perc = '10' )  ).
+*
+** delete existing entries in the database table
+*DELETE FROM zmk_hr_ctc_comp.
+*IF sy-subrc = 0.
+*ENDIF.
+** insert the new table entries
+*INSERT zmk_hr_ctc_comp FROM TABLE @itab2.
+*IF sy-subrc = 0.
+*ENDIF.
+
+*DATA itab TYPE TABLE OF zmk_sd_customers.
+*DATA itab2 TYPE TABLE OF zmk_sd_orders.
+*
+*itab = VALUE #( ( cust_id = '0000008888'
+*                  cust_name = 'CelcomDigi'
+*                  country = 'MY' )
+*                  ( cust_id = '0000009001'
+*                  cust_name = 'AT&T'
+*                  country = 'US' )
+*                  ( cust_id = '0000009002'
+*                  cust_name = 'T-Mobile'
+*                  country = 'US' )
+*                  ( cust_id = '0000009003'
+*                  cust_name = 'Telstra'
+*                  country = 'AU' )
+*                  ( cust_id = '0000009004'
+*                  cust_name = 'Vodafone'
+*                  country = 'UK' )
+*                  ( cust_id = '0000009005'
+*                  cust_name = 'CelcomDigi'
+*                  country = 'O2' )
+*                  ( cust_id = '0000009006'
+*                  cust_name = 'Jio'
+*                  country = 'IN' )
+*                  ( cust_id = '0000009007'
+*                  cust_name = 'Airtel'
+*                  country = 'IN' )
+*                  ( cust_id = '0000009999'
+*                  cust_name = 'Singtel'
+*                  country = 'SG' )
+*
+*                ).
+** delete existing entries in the database table
+*DELETE FROM zmk_sd_customers.
+*IF sy-subrc = 0.
+*ENDIF.
+** insert the new table entries
+*INSERT zmk_sd_customers FROM TABLE @itab.
+*IF sy-subrc = 0.
+*ENDIF.
+*
+*itab2 = VALUE #( ( order_no = '0000004970'
+*                   cust_id = '0000009001'
+*                   order_val = '10000'
+*                   currency = 'USD' )
+*                  ( order_no = '0000004971'
+*                   cust_id = '0000009002'
+*                   order_val = '15000'
+*                   currency = 'USD' )
+*                  ( order_no = '0000004972'
+*                   cust_id = '0000009002'
+*                   order_val = '20000'
+*                   currency = 'USD' )
+*                  ( order_no = '0000004973'
+*                   cust_id = '0000009002'
+*                   order_val = '40000'
+*                   currency = 'USD' )
+*                  ( order_no = '0000004974'
+*                   cust_id = '0000009001'
+*                   order_val = '22000'
+*                   currency = 'USD' )
+*                  ( order_no = '0000004975'
+*                   cust_id = '0000009003'
+*                   order_val = '5000'
+*                   currency = 'AUD' )
+*                  ( order_no = '0000004976'
+*                   cust_id = '0000009007'
+*                   order_val = '25000'
+*                   currency = 'INR' )
+*                  ( order_no = '0000004977'
+*                   cust_id = '0000009005'
+*                   order_val = '10000'
+*                   currency = 'GBP' )
+*                  ( order_no = '0000004978'
+*                   cust_id = '0000009007'
+*                   order_val = '5000'
+*                   currency = 'INR' )
+*                   ( order_no = '0000004979'
+*                   cust_id = '0000009006'
+*                   order_val = '15000'
+*                   currency = 'INR' )
+*                   ( order_no = '0000004980'
+*                   cust_id = '0000009004'
+*                   order_val = '5000'
+*                   currency = 'GBP' )
+*                   ( order_no = '0000004981'
+*                   cust_id = '0000001000'
+*                   order_val = '15000'
+*                   currency = 'USD' )
+*                   ( order_no = '0000004982'
+*                   cust_id = '0000001000'
+*                   order_val = '25000'
+*                   currency = 'USD' )
+*                   ( order_no = '0000004983'
+*                   cust_id = '0000001000'
+*                   order_val = '35000'
+*                   currency = 'USD' )
+*                ).
+** delete existing entries in the database table
+*DELETE FROM zmk_sd_orders.
+*IF sy-subrc = 0.
+*ENDIF.
+** insert the new table entries
+*INSERT zmk_sd_orders FROM TABLE @itab2.
+*IF sy-subrc = 0.
+*ENDIF.

@@ -1,0 +1,22 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_12
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_12.
+
+data lo_salv type ref to if_salv_gui_table_ida.
+
+cl_salv_gui_table_ida=>create(
+  EXPORTING
+    iv_table_name         = 'SCARR'
+*    io_gui_container      =
+*    io_calc_field_handler =
+   RECEIVING
+     ro_alv_gui_table_ida  = lo_salv
+).
+*CATCH cx_salv_db_connection.
+*CATCH cx_salv_db_table_not_supported.
+*CATCH cx_salv_ida_contract_violation.
+
+lo_salv->fullscreen( )->display( ).

@@ -1,0 +1,28 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_test_07
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_test_07.
+
+SELECT * FROM zmk_cds_udemy15 INTO TABLE @DATA(it_tab).
+
+    SELECT SINGLE * FROM zmk_cds_udemy15
+  INTO @DATA(lv_result).
+
+    IF 1 = 2. ENDIF.
+
+cl_salv_table=>factory(
+  EXPORTING
+    list_display   = if_salv_c_bool_sap=>false
+*    r_container    =
+*    container_name =
+  IMPORTING
+    r_salv_table   = DATA(lo_alv)
+  CHANGING
+    t_table        = it_tab
+).
+*CATCH cx_salv_msg.
+
+
+lo_alv->display( ).

@@ -1,0 +1,40 @@
+*&---------------------------------------------------------------------*
+*& Report zmkp_amdp_vbak2
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmkp_amdp_vbak2.
+
+DATA: wa_vbak TYPE vbak.
+
+SELECT-OPTIONS: s_vkorg FOR wa_vbak-vkorg,
+                s_vbtyp FOR wa_vbak-vbtyp.
+
+START-OF-SELECTION.
+
+""" Convert Select-option to String
+  cl_shdb_seltab=>combine_seltabs(
+    EXPORTING
+      it_named_seltabs = VALUE #( ( name = 'VKORG' dref = REF #( s_vkorg[] ) )
+                                  ( name = 'VBTYP' dref = REF #( s_vbtyp[] ) )
+                                 )
+    RECEIVING
+      rv_where         = DATA(lv_filter)
+  ).
+
+  """ Call AMDP Method
+  try.
+  zmk_sd_amdp2=>get_sales_doc_info2(
+    EXPORTING
+      iv_filter = lv_filter
+    IMPORTING
+      et_data = DATA(lt_data)
+  ).
+  CATCH cx_amdp_execution_error INTO DATA(lo_exc). " Error when executing an AMDP method
+     WRITE:/ lo_exc->get_text( ).
+  ENDTRY.
+
+
+  IF lt_data IS NOT INITIAL.
+    cl_demo_output=>display_data( lt_data ).
+  ENDIF.

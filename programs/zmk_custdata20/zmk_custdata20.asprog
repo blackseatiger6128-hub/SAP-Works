@@ -1,0 +1,35 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_custdata20
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_custdata20.
+
+DATA: itab TYPE TABLE OF zmk_customer20,
+      itab2 TYPE TABLE OF zmk_custaddr20.
+
+*fill internal table.
+itab = VALUE #( (  customerno = '1000000001' firstname = 'Peter'  lastname = 'Parker' phone = '562241783'
+                     createdbyuser = 'USER1' creationat = '20190711083422.2345565'
+                      lastchangedat = '20190711143422.1472620' locallastchangedat = '20190711143422.1472620' )
+                    (  customerno = '1000000002' firstname = 'Tony'  lastname = 'Tark' phone = '562241821'
+                     createdbyuser = 'USER1' creationat = '20190711083422.2345565'
+                      lastchangedat = '20190713111129.2391370' locallastchangedat = '20190713111129.2391370' ) ).
+
+  DELETE FROM zmk_customer20.
+
+  INSERT zmk_customer20 FROM TABLE itab.
+
+*fill internal table.
+ itab2 = VALUE #( (  customerno = '1000000001' addressid = '900000001'  city = 'New York'
+                      district = 'Queens' postalcode = '11375'
+                      country  = 'US' street = 'NC1'
+                      locallastchangedat = '20190711143422.1472620' )
+                    (  customerno = '1000000002' addressid = '900000001'  city = 'New York'
+                      district = 'Queens' postalcode = '11375'
+                        country  = 'US' street = 'NC2'
+                       locallastchangedat = '20190713111129.2391370' ) ).
+
+  DELETE FROM zmk_custaddr20.
+
+  INSERT zmk_custaddr20 FROM TABLE itab2.

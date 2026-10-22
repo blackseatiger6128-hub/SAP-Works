@@ -1,0 +1,266 @@
+*&---------------------------------------------------------------------*
+*& Report zmk_eml_flights
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmk_eml_flights.
+
+READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli
+            FIELDS ( carrid connid cityfrom cityto fltime deptime arrtime distance distid )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 400 ) )
+                   RESULT DATA(read_entity1)
+                   FAILED DATA(read_failed1).
+
+ IF read_failed1 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_failed1
+                                   name = 'Başarısız' ).
+ ELSE.
+     cl_demo_output=>display_data( value = read_entity1
+                                   name = 'Başarılı' ).
+ ENDIF.
+
+ READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli
+            FIELDS ( carrid connid cityfrom cityto fltime deptime arrtime distance distid )
+               WITH VALUE #( ( %key-carrid = 'LZ' %key-connid = 400 ) )
+                   RESULT DATA(read_entity11)
+                   FAILED DATA(read_failed11).
+
+ IF read_failed11 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_failed11
+                                   name = 'Başarısız' ).
+ ELSE.
+     cl_demo_output=>display_data( value = read_entity11
+                                   name = 'Başarılı' ).
+ ENDIF.
+
+*There are 2 EML read instructions-
+*1st is for the root entity and the 2nd is for the associated entity.
+"Read association entity
+READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli BY \_Flights
+            FIELDS ( carrid connid fldate price currency planetype seatsmax seatsocc paymentsum )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 400 ) )
+                   RESULT DATA(read_by_assoc_entity1)
+                   FAILED DATA(read_by_assoc_failed1).
+
+  IF read_by_assoc_failed1 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_failed1
+                                   name = 'Başarısız' ).
+ ELSE.
+     cl_demo_output=>display_data( value = read_entity1
+                                   name = 'Başarılı' ).
+ ENDIF.
+
+*We have to specify the full key as input value for the read with READ ENTITIES statement.
+*Additionally FAILED phrase can be added to collect the KEYs for which read has failed.
+ READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli
+            FIELDS ( carrid connid cityfrom cityto fltime deptime arrtime distance distid )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 400 ) )
+                   RESULT DATA(read_entity21)
+          ENTITY Flights
+            FIELDS ( carrid connid fldate price currency planetype seatsmax seatsocc paymentsum )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 400 %key-fldate = '19950228' ) )
+                   RESULT DATA(read_entity22)
+             FAILED DATA(read_failed2).
+
+ IF read_entity21 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity21
+                                   name = 'SPFLI read Başarılı' ).
+ ENDIF.
+ IF read_entity22 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity22
+                                   name = 'SFLIGHTS read Başarılı' ).
+ ENDIF.
+ IF read_failed2 IS NOT INITIAL.
+   cl_demo_output=>display_data( value = read_failed2
+                                   name = 'Başarısız' ).
+ ENDIF.
+
+*association entity with failed key.
+ READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli
+            FIELDS ( carrid connid cityfrom cityto fltime deptime arrtime distance distid )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 400 ) )
+                   RESULT DATA(read_entity31)
+          ENTITY Flights
+            FIELDS ( carrid connid fldate price currency planetype seatsmax seatsocc paymentsum )
+               WITH VALUE #( ( %key-carrid = 'LZ' %key-connid = 400 %key-fldate = '19950228' ) )
+                   RESULT DATA(read_entity32)
+             FAILED DATA(read_failed3).
+
+ IF read_entity31 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity31
+                                   name = 'SPFLI read Başarılı' ).
+ ENDIF.
+ IF read_entity32 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity32
+                                   name = 'SFLIGHTS read Başarılı' ).
+ ENDIF.
+ IF read_failed3 IS NOT INITIAL.
+   cl_demo_output=>display_data( value = read_failed3
+                                   name = 'Başarısız' ).
+ ENDIF.
+
+*both entity with failed keys
+ READ ENTITIES OF zmk_eraa_rv_spfli
+         ENTITY Spfli
+            FIELDS ( carrid connid cityfrom cityto fltime deptime arrtime distance distid )
+               WITH VALUE #( ( %key-carrid = 'LH' %key-connid = 408 ) )
+                   RESULT DATA(read_entity41)
+          ENTITY Flights
+            FIELDS ( carrid connid fldate price currency planetype seatsmax seatsocc paymentsum )
+               WITH VALUE #( ( %key-carrid = 'LZ' %key-connid = 400 %key-fldate = '19950228' ) )
+                   RESULT DATA(read_entity42)
+             FAILED DATA(read_failed4).
+
+ IF read_entity41 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity41
+                                   name = 'SPFLI read Başarılı' ).
+ ENDIF.
+ IF read_entity42 IS NOT INITIAL.
+     cl_demo_output=>display_data( value = read_entity42
+                                   name = 'SFLIGHTS read Başarılı' ).
+ ENDIF.
+ IF read_failed4 IS NOT INITIAL.
+   cl_demo_output=>display_data( value = read_failed4
+                                   name = 'Başarısız' ).
+ ENDIF.
+
+*Now next is the Read Entities with Operations-
+*We have few data declaration for read input as import and
+*read output as result and finally the link.
+
+DATA: op_tab         TYPE abp_behv_retrievals_tab,
+      idyn_spfli     TYPE TABLE FOR READ IMPORT zmk_eraa_rv_spfli,
+      odyn_spfli     TYPE TABLE FOR READ RESULT zmk_eraa_rv_spfli,
+      rba_idyn_sflight TYPE TABLE FOR READ IMPORT zmk_eraa_rv_spfli\_Flights,
+      rba_odyn_sflight TYPE TABLE FOR READ RESULT zmk_eraa_rv_spfli\_Flights,
+      rba_dyn_link   TYPE TABLE FOR READ LINK zmk_eraa_rv_spfli\_Flights.
+
+*  Dynamic input for Root Entity and read by association input for child entity-
+idyn_spfli = VALUE #(
+              ( %key-carrid = 'LH'
+                %key-connid = 400
+                %control = VALUE #( airpfrom = if_abap_behv=>mk-on
+                                    airpto = if_abap_behv=>mk-on
+                                    arrtime = if_abap_behv=>mk-on
+                                    cityfrom = if_abap_behv=>mk-on
+                                    cityto = if_abap_behv=>mk-on
+                                    countryfr = if_abap_behv=>mk-on
+                                    countryto = if_abap_behv=>mk-on
+                                    deptime = if_abap_behv=>mk-on
+                                    fltime = if_abap_behv=>mk-on
+                                    distance = if_abap_behv=>mk-on
+                                    distid = if_abap_behv=>mk-on
+                                    fltype = if_abap_behv=>mk-on
+                                    period = if_abap_behv=>mk-on ) ) ).
+rba_idyn_sflight = VALUE #(
+              ( %key-carrid = 'LH'
+                %key-connid = 400
+                %control = VALUE #(  fldate = if_abap_behv=>mk-on
+                                     price = if_abap_behv=>mk-on
+                                     currency = if_abap_behv=>mk-on
+                                     planetype = if_abap_behv=>mk-on
+                                     seatsmax = if_abap_behv=>mk-on
+                                     seatsocc = if_abap_behv=>mk-on
+                                     paymentsum = if_abap_behv=>mk-on ) ) ).
+
+* Finally fill the Operation Table with input data internal table
+*and the target result tables with link table.
+*When the statement READ ENTITIES OPERATIONS instruction is executed,
+*the target result table and link table are filled with relevant data.
+
+op_tab = VALUE #( ( op = if_abap_behv=>op-r-read
+                    entity_name = 'ZMK_ERAA_RV_SPFLI'
+                    instances = REF #( idyn_spfli )
+                    results = REF #( odyn_spfli ) )
+                    ( op = if_abap_behv=>op-r-read_ba
+                    entity_name = 'ZMK_ERAA_RV_SPFLI'
+                    sub_name = '_FLIGTHS'
+                    full = abap_on
+                    instances = REF #( rba_idyn_sflight )
+                    results = REF #( rba_odyn_sflight )
+                    links = REF #( rba_dyn_link ) ) ).
+
+READ ENTITIES OPERATIONS op_tab FAILED  DATA(failed_dyn).
+IF odyn_spfli IS NOT INITIAL.
+   cl_demo_output=>display_data( value = odyn_spfli
+                                 name = 'SPFLI read Başarılı' ).
+ENDIF.
+ IF rba_odyn_sflight  IS NOT INITIAL.
+   cl_demo_output=>display_data( value = rba_odyn_sflight
+                                 name = 'SFLIGHTS read Başarılı' ).
+ ENDIF.
+ IF failed_dyn IS NOT INITIAL.
+   cl_demo_output=>display_data( value = failed_dyn
+                                 name = 'Failed' ).
+ ENDIF.
+ IF rba_dyn_link IS NOT INITIAL.
+   cl_demo_output=>display_data( value = rba_dyn_link
+                                 name = 'Link' ).
+ ENDIF.
+
+
+*In control parameter- set specific fields to OFF and
+*that information is not read. This is more like reading specific fields
+*but not all.
+READ ENTITIES OF zmk_eraa_rv_spfli
+ ENTITY Spfli
+      FROM VALUE #(
+              ( %key-carrid = 'LH'
+                %key-connid = 400 ) )
+                 RESULT DATA(read_successful)
+                 FAILED DATA(read_failed).    .
+IF read_successful IS NOT INITIAL.
+   cl_demo_output=>display_data( value = read_successful
+                                 name = 'SPFLI read Başarılı' ).
+ENDIF.
+
+*Another READ EML where specific fields to be read can be mentioned and
+*value input can be provided along ‘WITH’.
+
+READ ENTITIES OF zmk_eraa_rv_spfli
+ ENTITY Spfli
+         FIELDS ( carrid connid airpfrom airpto arrtime cityfrom cityto
+                   countryfr countryto deptime fltime distance distid
+                    fltype period )
+          WITH VALUE #(
+              ( %key-carrid = 'LH'
+                %key-connid = 400
+               ) )
+                 RESULT DATA(read_successful2)
+                 FAILED DATA(read_failed_2).    .
+IF read_successful2 IS NOT INITIAL.
+   cl_demo_output=>display_data( value = read_successful2
+                                 name = 'SPFLI read Başarılı' ).
+ENDIF.
+
+*Now in the report- with READ EML execute the action-
+*Convert and provide the input key information.
+
+*READ ENTITIES OF zmk_eraa_rv_spfli
+* ENTITY Spfli
+*   EXECUTE convert
+*      FROM VALUE #(
+*              ( %tky-carrid = 'LH'
+*                %tky-connid = 400 )
+*              ( %tky-carrid = 'LH'
+*                %tky-connid = 402 ) )
+*                 RESULT DATA(lt_result)
+*                 FAILED DATA(lt_failed)
+*                 REPORTED DATA(lt_reported).    .
+*IF lt_result IS NOT INITIAL.
+*   cl_demo_output=>display_data( value = lt_result
+*                                 name = 'lt_result' ).
+*ENDIF.
+*IF lt_failed IS NOT INITIAL.
+*   cl_demo_output=>display_data( value = lt_failed
+*                                 name = 'lt_failed' ).
+*ENDIF.
+*IF lt_reported IS NOT INITIAL.
+*   cl_demo_output=>display_data( value = lt_reported
+*                                 name = 'lt_reported' ).
+*ENDIF.
