@@ -1,0 +1,65 @@
+FUNCTION enqueue_ez_zppauto_prod
+  IMPORTING
+    VALUE(mode_zppauto_prod) TYPE enqmode DEFAULT 'E'
+    VALUE(client) TYPE zppauto_prod-client DEFAULT sy-mandt
+    VALUE(plan_uuid) TYPE zppauto_prod-plan_uuid OPTIONAL
+    VALUE(x_plan_uuid) TYPE any DEFAULT space ##ADT_PARAMETER_UNTYPED
+    VALUE(_scope) TYPE any DEFAULT '2' ##ADT_PARAMETER_UNTYPED
+    VALUE(_wait) TYPE any DEFAULT space ##ADT_PARAMETER_UNTYPED
+    VALUE(_collect) TYPE ddenqcoll DEFAULT ' '
+  EXCEPTIONS
+    foreign_lock
+    system_failure.
+
+
+
+* Generated function module for lock object EZ_ZPPAUTO_PROD
+* Do not modify or copy this function module.
+* See ABAP Help for information on the SAP lock concept
+* for key word 'ENQUEUE'
+
+
+DATA: __seqta_tab TYPE SEQTA OCCURS 01 WITH HEADER LINE,
+      __scope TYPE DDENQSCOPE,
+      __wait TYPE DDENQWAIT.
+__wait = _wait.
+__scope = _scope.
+
+
+DATA: BEGIN OF %a_ZPPAUTO_PROD,
+*       Lock argument for table ZPPAUTO_PROD
+            CLIENT TYPE ZPPAUTO_PROD-CLIENT,
+            PLAN_UUID(000032) TYPE C,
+      END OF %a_ZPPAUTO_PROD.
+* Initialization of lock argument:
+CALL 'C_ENQ_WILDCARD' ID 'HEX0' FIELD %a_ZPPAUTO_PROD.
+
+
+* Assignment of lock parameters to lock fields:
+
+IF NOT CLIENT IS INITIAL.
+   MOVE CLIENT TO:
+        %a_ZPPAUTO_PROD-CLIENT.
+ENDIF.
+
+IF NOT PLAN_UUID IS INITIAL OR
+   NOT x_PLAN_UUID IS INITIAL.
+   MOVE PLAN_UUID TO:
+        %a_ZPPAUTO_PROD-PLAN_UUID.
+ENDIF.
+
+
+* Fill the lock table:
+
+__seqta_tab-gname = 'ZPPAUTO_PROD'.
+__seqta_tab-gmode = MODE_ZPPAUTO_PROD.
+__seqta_tab-garg = %a_ZPPAUTO_PROD.
+APPEND __seqta_tab.
+
+
+* Lock assigned:
+PERFORM send_enqueue(saplsena)
+        TABLES __seqta_tab
+        USING '1' __scope __wait ' ' 'EZ_ZPPAUTO_PROD' _collect.
+
+ENDFUNCTION.

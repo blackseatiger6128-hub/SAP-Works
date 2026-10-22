@@ -1,0 +1,12 @@
+*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE /1BCDWBEN/LTEN0000TOP.             " Global Data
+  INCLUDE /1BCDWBEN/LTEN0000UXX.             " Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE /1BCDWBEN/LTEN0000F...             " Subprograms
+* INCLUDE /1BCDWBEN/LTEN0000O...             " PBO-Modules
+* INCLUDE /1BCDWBEN/LTEN0000I...             " PAI-Modules
